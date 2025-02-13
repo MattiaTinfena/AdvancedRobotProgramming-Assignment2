@@ -13,7 +13,7 @@
 #include "auxfunc2.hpp"
 
 using namespace eprosima::fastdds::dds;
-
+using namespace eprosima::fastdds::rtps;
 // Constructor implementations
 TargetSubscriber::TargetSubscriber()
     : participant_(nullptr)
@@ -45,9 +45,18 @@ TargetSubscriber::~TargetSubscriber()
 
 bool TargetSubscriber::init()
 {
-    DomainParticipantQos participantQos;
-    participantQos.name("Participant_subscriber");
-    participant_ = DomainParticipantFactory::get_instance()->create_participant(1, participantQos);
+    // DomainParticipantQos participantQos;
+    // participantQos.name("Participant_subscriber");
+    // participant_ = DomainParticipantFactory::get_instance()->create_participant(1, participantQos);
+
+    DomainParticipantQos qos;
+    qos.wire_protocol().builtin.discovery_config.discoveryProtocol = DiscoveryProtocol::SERVER;
+    qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(eprosima::fastdds::rtps::Locator_t());
+
+    // qos.discoveryProtocol = DiscoveryProtocol_t::SERVER;
+    // qos.builtin.discovery_config.m_DiscoveryServers.push_back();
+
+    participant_ = DomainParticipantFactory::get_instance()->create_participant(0, qos);
 
     if (participant_ == nullptr)
     {
