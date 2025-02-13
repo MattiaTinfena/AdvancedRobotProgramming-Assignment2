@@ -421,7 +421,7 @@ int main(int argc, char *argv[]) {
         ;
     } 
     
-
+    status.targets.number = 10;
     pid = (int)getpid();
     char dataWrite [80] ;
     snprintf(dataWrite, sizeof(dataWrite), "b%d,", pid);

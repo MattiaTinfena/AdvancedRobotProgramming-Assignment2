@@ -68,7 +68,7 @@ int main() {
     pid_t pids[PROCESSNUM];   
 
     int choice;
-    printf("Press 1 for the server and 2 for the clien: ");
+    printf("Press 1 for the server and 2 for the client: ");
     fflush(stdout);
     scanf("%d", &choice);
 

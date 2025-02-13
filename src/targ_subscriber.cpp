@@ -6,6 +6,7 @@
 #include <fastdds/dds/subscriber/DataReader.hpp>
 #include <fastdds/dds/subscriber/DataReaderListener.hpp>
 #include <fastdds/dds/subscriber/qos/DataReaderQos.hpp>
+#include <fastdds/rtps/transport/TCPv4TransportDescriptor.hpp>
 #include <fastdds/dds/subscriber/SampleInfo.hpp>
 #include <fastdds/dds/subscriber/Subscriber.hpp>
 #include <fastdds/dds/topic/TypeSupport.hpp>
@@ -45,18 +46,29 @@ TargetSubscriber::~TargetSubscriber()
 
 bool TargetSubscriber::init()
 {
-    // DomainParticipantQos participantQos;
-    // participantQos.name("Participant_subscriber");
-    // participant_ = DomainParticipantFactory::get_instance()->create_participant(1, participantQos);
 
-    DomainParticipantQos qos;
-    qos.wire_protocol().builtin.discovery_config.discoveryProtocol = DiscoveryProtocol::SERVER;
-    qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(eprosima::fastdds::rtps::Locator_t());
+    DomainParticipantQos server_qos = PARTICIPANT_QOS_DEFAULT;
 
-    // qos.discoveryProtocol = DiscoveryProtocol_t::SERVER;
-    // qos.builtin.discovery_config.m_DiscoveryServers.push_back();
+    // Set participant as SERVER
+    server_qos.wire_protocol().builtin.discovery_config.discoveryProtocol =
+            DiscoveryProtocol::SERVER;
 
-    participant_ = DomainParticipantFactory::get_instance()->create_participant(0, qos);
+    // Set SERVER's listening locator for PDP
+    Locator_t locator;
+    IPLocator::setIPv4(locator, 127, 0, 0, 1);
+    locator.port = 11812;
+    server_qos.wire_protocol().builtin.metatrafficUnicastLocatorList.push_back(locator);
+
+    /* Add a remote serve to which this server will connect */
+    // Set remote SERVER's listening locator for PDP
+    Locator_t remote_locator;
+    IPLocator::setIPv4(remote_locator, 127, 0, 0, 1);
+    remote_locator.port = 11813;
+
+    // Add remote SERVER to SERVER's list of SERVERs
+    server_qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(remote_locator);
+
+    participant_ = DomainParticipantFactory::get_instance()->create_participant(0, server_qos);
 
     if (participant_ == nullptr)
     {

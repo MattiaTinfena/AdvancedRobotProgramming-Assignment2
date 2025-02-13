@@ -14,7 +14,7 @@
 #include <fastdds/dds/publisher/DataWriterListener.hpp>
 #include <fastdds/dds/publisher/Publisher.hpp>
 #include <fastdds/dds/topic/TypeSupport.hpp>
-
+#include <fastdds/rtps/transport/TCPv4TransportDescriptor.hpp>
 
 #include "targ_publisher.hpp"  // Include the header file
 #include "auxfunc2.hpp"
@@ -54,16 +54,28 @@ TargetPublisher::~TargetPublisher()
 bool TargetPublisher::init()
 {
     
-    DomainParticipantQos participantQos;
-    participantQos.wire_protocol().builtin.discovery_config.discoveryProtocol = DiscoveryProtocol::CLIENT;
+    // Get default participant QoS
+    DomainParticipantQos client_qos = PARTICIPANT_QOS_DEFAULT;
+
+    // Set participant as CLIENT
+    client_qos.wire_protocol().builtin.discovery_config.discoveryProtocol =
+            DiscoveryProtocol::CLIENT;
+
+    // Set SERVER's listening locator for PDP
     Locator_t locator;
-    locator.port = 8888;
-    IPLocator::setIPv4 (locator, 127,0,0,1);
-    participantQos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(locator);
+    IPLocator::setIPv4(locator, 127, 0, 0, 1);
+    locator.port = 11812;
 
-    participant_ = DomainParticipantFactory::get_instance()->create_participant(0, participantQos);
+    // Add remote SERVER to CLIENT's list of SERVERs
+    client_qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(locator);
 
-    if (participant_ == nullptr)
+    // Set ping period to 250 ms
+    client_qos.wire_protocol().builtin.discovery_config.discoveryServer_client_syncperiod =
+        Duration_t(0, 250000000);
+
+    participant_ = DomainParticipantFactory::get_instance()->create_participant(0, client_qos);
+    
+       if (participant_ == nullptr)
     {
         return false;
     }
