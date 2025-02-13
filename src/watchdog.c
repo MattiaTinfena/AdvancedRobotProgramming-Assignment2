@@ -11,6 +11,7 @@
 #include "auxfunc.h"
 #include <signal.h>
 #include <time.h>
+#include "watchdog.h"
 
 #define PROCESSTOCONTROL 5
 
@@ -23,8 +24,7 @@ FILE *wdFile;
 
 void sig_handler(int signo) {
     if(signo == SIGTERM){
-        fprintf(wdFile, "Watchdog is quitting\n");
-        fflush(wdFile);   
+        LOGWDDIED();   
         fclose(wdFile);
         exit(EXIT_SUCCESS);
     }
@@ -34,13 +34,11 @@ void closeAll(int id){
     for(int i  = 0; i < PROCESSTOCONTROL; i++){
         if (i != id) {
             if (kill(pids[i], SIGTERM) == -1) {
-                fprintf(wdFile,"Process %d is not responding or has terminated\n", pids[i]);
-                fflush(wdFile);
+                LOGPROCESSDIED(pids[i]);
             }
         }
     }
-    fprintf(wdFile, "Watchdog is quitting all because %d is dead\n", id);
-    fflush(wdFile);
+    LOGWDDIED();
     fclose(wdFile);
     exit(EXIT_SUCCESS);
 }

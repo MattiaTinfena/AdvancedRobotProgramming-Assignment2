@@ -116,22 +116,18 @@ int main(int argc, char *argv[]) {
 
     // Initialize the publisher
     if (!obstPub.init()){      
-
-        //------------------
-        //  TO LOG
-        //------------------
-         
-        //std::cerr << "Error initializing the publisher." << std::endl;
+        LOGERRORINIT();
         return 1;
     }
 
     while (1) {
 
         createObstacles();
-        for(int i = 0; i < MAX_OBSTACLES; i++){
-            fprintf(obstFile,"obstX,obstY = %d, %d\n", obstacles.x[i], obstacles.y[i]);
-            fflush(obstFile);
-        }
+        LOGNEWMAP(obstacles);
+        // for(int i = 0; i < MAX_OBSTACLES; i++){
+        //     fprintf(obstFile,"obstX,obstY = %d, %d\n", obstacles.x[i], obstacles.y[i]);
+        //     fflush(obstFile);
+        // }
         obstPub.publish(obstacles);
         sleep(PERIODO);
     }
