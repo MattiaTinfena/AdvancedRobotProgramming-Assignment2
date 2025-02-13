@@ -13,6 +13,7 @@
 #include "auxfunc2.hpp"
 
 using namespace eprosima::fastdds::dds;
+using namespace eprosima::fastdds::rtps;
 
 // Le definizioni delle classi non dovrebbero essere incluse in obst_subscriber.cpp, ma solo dichiarate nel file header
 
@@ -47,9 +48,15 @@ ObstacleSubscriber::~ObstacleSubscriber()
 
 bool ObstacleSubscriber::init()
 {
-    DomainParticipantQos participantQos;
-    participantQos.name("Participant_subscriber");
-    participant_ = DomainParticipantFactory::get_instance()->create_participant(1, participantQos);
+    DomainParticipantQos qos;
+    qos.wire_protocol().builtin.discovery_config.discoveryProtocol = DiscoveryProtocol::SERVER;
+    qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(eprosima::fastdds::rtps::Locator_t());
+
+    // qos.discoveryProtocol = DiscoveryProtocol_t::SERVER;
+    // qos.builtin.discovery_config.m_DiscoveryServers.push_back();
+
+    participant_ = DomainParticipantFactory::get_instance()->create_participant(0, qos);
+
 
     if (participant_ == nullptr)
     {

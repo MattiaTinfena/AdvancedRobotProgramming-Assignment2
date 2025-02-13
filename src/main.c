@@ -68,7 +68,7 @@ int main() {
     pid_t pids[PROCESSNUM];   
 
     int choice;
-    printf("Inserisci 1 per il Master, 2 per lo slave: ");
+    printf("Press 1 for the server and 2 for the clien: ");
     fflush(stdout);
     scanf("%d", &choice);
 

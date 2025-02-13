@@ -19,6 +19,7 @@
 #include "auxfunc2.hpp"
 
 using namespace eprosima::fastdds::dds;
+using namespace eprosima::fastdds::rtps;
 
 // Remove class definition from here
 
@@ -53,8 +54,13 @@ bool ObstaclePublisher::init()
 {
 
     DomainParticipantQos participantQos;
-    participantQos.name("Participant_publisher");
-    participant_ = DomainParticipantFactory::get_instance()->create_participant(1, participantQos);
+    participantQos.wire_protocol().builtin.discovery_config.discoveryProtocol = DiscoveryProtocol::CLIENT;
+    Locator_t locator;
+    locator.port = 8888;
+    IPLocator::setIPv4 (locator, 127,0,0,1);
+    participantQos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(locator);
+
+    participant_ = DomainParticipantFactory::get_instance()->create_participant(0, participantQos);
 
     if (participant_ == nullptr)
     {

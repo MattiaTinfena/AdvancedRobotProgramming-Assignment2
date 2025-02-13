@@ -321,10 +321,6 @@ void sig_handler(int signo) {
         close(fds[DRONE][askrd]);
         close(fds[INPUT][recwr]);
         close(fds[INPUT][askrd]);
-        close(fds[OBSTACLE][recwr]);
-        close(fds[OBSTACLE][askrd]);
-        close(fds[TARGET][recwr]);
-        close(fds[TARGET][askrd]);
         exit(EXIT_SUCCESS);
     } else if( signo == SIGWINCH){
         resizeHandler();
@@ -447,10 +443,6 @@ int main(int argc, char *argv[]) {
     close(fds[DRONE][recrd]);
     close(fds[INPUT][askwr]);
     close(fds[INPUT][recrd]);
-    close(fds[OBSTACLE][askwr]);
-    close(fds[OBSTACLE][recrd]);
-    close(fds[TARGET][askwr]);
-    close(fds[TARGET][recrd]);
 
     fd_set readfds;
     struct timeval tv;
