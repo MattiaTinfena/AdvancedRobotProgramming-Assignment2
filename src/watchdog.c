@@ -32,6 +32,7 @@ void sig_handler(int signo) {
 
 void closeAll(int id){
     for(int i  = 0; i < PROCESSTOCONTROL; i++){
+        if (pids[i] == 0) continue;
         if (i != id) {
             if (kill(pids[i], SIGTERM) == -1) {
                 LOGPROCESSDIED(pids[i]);
@@ -45,11 +46,14 @@ void closeAll(int id){
 
 int main() {
     // Open the output wdFile for writing
-    wdFile = fopen("log/outputWD.log", "w");
+    wdFile = fopen("log/watchdog.log", "w");
     if (wdFile == NULL) {
         perror("Error opening the wdFile");
         exit(1);
     }
+
+    fprintf(wdFile, "%d\n", __LINE__);
+    fflush(wdFile);
 
     int pid = (int)getpid();
     char dataWrite [80] ;
@@ -57,17 +61,23 @@ int main() {
 
     if(writeSecure("log/passParam.txt", dataWrite,1,'a') == -1){
         perror("[WATCHDOG] Error in writing in passParam.txt");
-        exit(1);
-    }
+            exit(1);
+        }
 
-    sleep(1);
+        sleep(1);
+    
+    fprintf(wdFile, "%d\n", __LINE__);
+    fflush(wdFile);
 
     char datareaded[200];
     if (readSecure("log/passParam.txt", datareaded,1) == -1) {
-        perror("Error reading the passParam wdFile");
-        exit(1);
-    }
-
+            perror("[WD1] Error reading the passParam wdFile");
+            exit(1);
+        }
+    
+        fprintf(wdFile, "%d\n", __LINE__);
+    fflush(wdFile);
+    
     // Parse the data and assign roles
     char *token = strtok(datareaded, ",");
     while (token != NULL) {
@@ -91,67 +101,100 @@ int main() {
         token = strtok(NULL, ",");
     }
 
+    fprintf(wdFile, "%d\n", __LINE__);
+    fflush(wdFile);
+
     // // Write the PID values to the output wdFile
-    // for (int i = 0; i < PROCESSTOCONTROL; i++) {
-    //     fprintf(wdFile, "pid[%d] = %d\n", i, pids[i]);
-    //     fflush(wdFile);
-    // }
+    for (int i = 0; i < PROCESSTOCONTROL; i++) {
+        // if (pids[i] == 0) continue;
+        fprintf(wdFile, "pid[%d] = %d\n", i, pids[i]);
+        fflush(wdFile);
+    }
 
-    // signal(SIGTERM, sig_handler);
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = sig_handler;
+    sa.sa_flags = SA_RESTART;  // Riavvia read/write interrotte
+    if (sigaction(SIGUSR1, &sa, NULL) == -1) {
+        perror("sigaction");
+        exit(EXIT_FAILURE);
+    }
+    fprintf(wdFile, "%d\n", __LINE__);
+    fflush(wdFile);
 
-    // for (int i = 0; i < PROCESSTOCONTROL; i++) {
-    //         if (kill(pids[i], SIGUSR1) == -1) {
-    //             fprintf(wdFile,"Process %d is not responding or has terminated\n", pids[i]);
-    //             fflush(wdFile);
-    //             closeAll(i);
-    //         }
-    //     usleep(10000);
-    // }
+    for (int i = 0; i < PROCESSTOCONTROL; i++) {
+        if (pids[i] == 0) continue;
+        if (kill(pids[i], SIGUSR1) == -1) {
+            LOG_PROCESS_NOT_RESPONDING(pids[i]);
+            closeAll(i);
+        }
+        usleep(10000);
+    }
+
+    fprintf(wdFile, "%d\n", __LINE__);
+    fflush(wdFile);
 
     int interval = 0;
 
     while (1) {
 
         sleep(1);
-        // interval++;
+        interval++;
 
-        // if(interval >= 4){
-        //     interval = 0;
-        //     for (int i = 0; i < PROCESSTOCONTROL; i++) {
-        //             if (kill(pids[i], SIGUSR1) == -1) {
-        //                 fprintf(wdFile,"Process %d is not responding or has terminated\n", pids[i]);
-        //                 fflush(wdFile);
-        //                 closeAll(i);
-        //             }
-        //         usleep(10000);
-        //     }
-        // }   
+        if(interval >= 4){
+            interval = 0;
+            for (int i = 0; i < PROCESSTOCONTROL; i++) {
+                if (pids[i] == 0) continue;
+                if (kill(pids[i], SIGUSR1) == -1) {
+                    LOG_PROCESS_NOT_RESPONDING(pids[i]);
+                    closeAll(i);
+                }
+                usleep(10000);
+            }
+        }
+        
+        fprintf(wdFile, "%d\n", __LINE__);
+        fflush(wdFile);
 
-        // usleep(10000);
-        // time_t rawtime;
-        // struct tm *timeinfo;
-        // time(&rawtime);
-        // timeinfo = localtime(&rawtime);
+        usleep(10000);
+        time_t rawtime;
+        struct tm *timeinfo;
+        time(&rawtime);
+        timeinfo = localtime(&rawtime);
 
-        // char timeReaded[80];
-        // for(int i = 0; i < PROCESSTOCONTROL; i++){
-        //     if(readSecure("log/passParam.txt", timeReaded, i + 3) == -1){
-        //         perror("Error reading the passParam wdFile");
-        //         fclose(wdFile);
-        //         exit(1);
-        //     }
+        char timeReaded[50];
+        
+        for(int i = 0; i < PROCESSTOCONTROL; i++){
+            memset(timeReaded, 0, sizeof(timeReaded));
+            fprintf(wdFile, "%d pids[%d] = %d\t", __LINE__, i, pids[i]);
+            fflush(wdFile);
+            if (pids[i] == 0) continue;
+            printf("[DEBUG] Tentativo di leggere riga: %d\n", i + 3);
+            if(readSecure("log/passParam.txt", timeReaded, i + 3) == -1){
+                perror("[WD2] Error reading the passParam wdFile");
+                fclose(wdFile);
+                exit(1);
+            }
+            fprintf(wdFile, "timeReaded pre: %d\t", timeReaded);
+            fflush(wdFile);
 
-        //     int hours, minutes, seconds;
-        //     sscanf(timeReaded, "%d:%d:%d", &hours, &minutes, &seconds);
-        //     long timeReadedInSeconds = hours * 3600 + minutes * 60 + seconds;
+            int hours, minutes, seconds;
+            sscanf(timeReaded, "%d:%d:%d", &hours, &minutes, &seconds);
+            long timeReadedInSeconds = hours * 3600 + minutes * 60 + seconds;
             
-        //     long currentTimeInSeconds = timeinfo->tm_hour * 3600 + timeinfo->tm_min * 60 + timeinfo->tm_sec;
-        //     long timeDifference = currentTimeInSeconds - timeReadedInSeconds;
+            long currentTimeInSeconds = timeinfo->tm_hour * 3600 + timeinfo->tm_min * 60 + timeinfo->tm_sec;
+            long timeDifference = currentTimeInSeconds - timeReadedInSeconds;
 
-        //     if (timeDifference > 5) {
-        //         closeAll(i);
-        //     }
-        // } 
+            fprintf(wdFile, "timeReaded: %d timeReaded [sec] %d\n", timeReaded, timeReadedInSeconds);
+            fflush(wdFile);
+
+            if (timeDifference > 5) {
+                closeAll(i);
+            }
+        }
+        
+        fprintf(wdFile, "%d\n", __LINE__);
+        fflush(wdFile);
     }                 
     
     //Close the wdFile

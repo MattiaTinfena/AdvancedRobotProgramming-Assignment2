@@ -445,16 +445,20 @@ int main(int argc, char *argv[]) {
     close(fds[INPUT][recrd]);
 
     fd_set readfds;
-    struct timeval tv;
+    struct timespec ts;
     
     //Setting select timeout
-    tv.tv_sec = 0;
-    tv.tv_usec = 1000;
+    ts.tv_sec = 0;
+    ts.tv_nsec = 1000 * 1000;
 
-    signal(SIGUSR1, sig_handler);
-    signal(SIGWINCH, sig_handler);
     
-    signal(SIGTERM, sig_handler);
+    struct sigaction sa;
+    sa.sa_handler = sig_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    sigaction(SIGUSR1, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
+    sigaction(SIGWINCH, &sa, NULL);
 
     initscr();
     start_color();
@@ -476,7 +480,7 @@ int main(int argc, char *argv[]) {
 
     char datareaded[200];
     if (readSecure("log/passParam.txt", datareaded,1) == -1) {
-        perror("Error reading the passParam file");
+        perror("[BB] Error reading the passParam file");
         exit(1);
     }
 
@@ -577,6 +581,12 @@ int main(int argc, char *argv[]) {
         wrefresh(win);
         wrefresh(map);
 
+        sigset_t mask;
+        sigemptyset(&mask);
+        sigaddset(&mask, SIGUSR1);
+        sigaddset(&mask, SIGTERM);
+        sigaddset(&mask, SIGWINCH);
+
         //FDs setting for select
         FD_ZERO(&readfds);
         FD_SET(fds[DRONE][askrd], &readfds);
@@ -585,7 +595,7 @@ int main(int argc, char *argv[]) {
         int fdsQueue [4];
         int ready = 0;
 
-        int sel = select(nfds, &readfds, NULL, NULL, &tv);
+        int sel = pselect(nfds, &readfds, NULL, NULL, &ts, &mask);
         
         if (sel == -1) {
             perror("Select error");

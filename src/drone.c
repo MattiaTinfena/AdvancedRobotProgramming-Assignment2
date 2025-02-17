@@ -216,11 +216,6 @@ void mapInit(Drone* drone, Message* status){
     
     msgInit(status);
 
-
-    fprintf(droneFile, "First map initialization. Updating drone position... ");
-    fflush(droneFile);
-
-
     droneUpdate(drone, &speed, &force, status);
     LOGDRONEINFO(status->drone);
 
@@ -262,8 +257,12 @@ int main(int argc, char *argv[]) {
     close(fds[recwr]);
 
     //Defining signals
-    signal(SIGUSR1, sig_handler);
-    signal(SIGTERM, sig_handler);
+    struct sigaction sa;
+    sa.sa_handler = sig_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    sigaction(SIGUSR1, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
     
     char directions[MAX_DIRECTIONS] = {0};
 

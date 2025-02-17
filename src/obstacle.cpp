@@ -94,8 +94,12 @@ int main(int argc, char *argv[]) {
     pid = writePid("log/passParam.txt", 'a', 1, 'o');
 
     //Defining signals
-    signal(SIGUSR1, sig_handler);
-    signal(SIGTERM, sig_handler);
+    struct sigaction sa;
+    sa.sa_handler = sig_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    sigaction(SIGUSR1, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
 
     //Open config file
     settingsfile = fopen("appsettings.json", "r");
