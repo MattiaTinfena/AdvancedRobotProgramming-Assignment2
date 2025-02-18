@@ -36,6 +36,10 @@ TargetPublisher::TargetPublisher()
     , port_(0)
     {
         std::fill(std::begin(ip_vector), std::end(ip_vector), 0);
+        file = fopen("obstacle_publisher.log", "w");  // Apri il file di log in modalità scrittura
+        if (!file) {        
+            std::cerr << "Errore nell'aprire il file di log!" << std::endl;
+        }
     }
 
 TargetPublisher::~TargetPublisher()
@@ -51,6 +55,10 @@ TargetPublisher::~TargetPublisher()
     if (topic_ != nullptr)
     {
         participant_->delete_topic(topic_);
+    }
+
+    if (file) {
+        fclose(file);
     }
     DomainParticipantFactory::get_instance()->delete_participant(participant_);
 }

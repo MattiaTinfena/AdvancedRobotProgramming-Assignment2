@@ -28,8 +28,11 @@ private:
     TypeSupport type_;
     MyObstacles received_obstacles_;  // Variabile che contiene i dati ricevuti
     bool new_data_;
-    std::array<int, 4> ip_vector;
-    int port_;
+    std::array<int, 4> ip_vector_server;
+    int port_server_;
+    std::array<int, 4> ip_vector_client;
+    int port_client_;
+    FILE *file;
 
     class SubListener : public DataReaderListener
     {

@@ -1,6 +1,8 @@
 #include "Generated/ObstaclesPubSubTypes.hpp"
 #include <chrono>
 #include <thread>
+#include <cjson/cJSON.h>
+#include <fstream>
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 #include <fastdds/dds/subscriber/DataReader.hpp>
@@ -27,9 +29,11 @@ ObstacleSubscriber::ObstacleSubscriber()
     , type_(new ObstaclesPubSubType())
     , listener_(this)  
     , new_data_(false)
-    , port_(0)
+    , port_server_(0)
+    , port_client_(0)
     {
-        std::fill(std::begin(ip_vector), std::end(ip_vector), 0);
+        std::fill(std::begin(ip_vector_server), std::end(ip_vector_server), 0);
+        std::fill(std::begin(ip_vector_client), std::end(ip_vector_client), 0);
     }
 
 
@@ -50,7 +54,7 @@ ObstacleSubscriber::~ObstacleSubscriber()
     DomainParticipantFactory::get_instance()->delete_participant(participant_);
 }
 
-bool ObstaclePublisher::parseFromJSON()
+bool ObstacleSubscriber::parseFromJSON()
 {
     FILE* file = fopen("appsettings.json", "r");
     if (!file) {
@@ -82,13 +86,29 @@ bool ObstaclePublisher::parseFromJSON()
     }
 
     for (int i = 0; i < 4; i++) {
-        ip_vector[i] = cJSON_GetArrayItem(ip_array, i)->valueint;
+        ip_vector_server[i] = cJSON_GetArrayItem(ip_array, i)->valueint;
     }
 
 
-    cJSON* port_item = cJSON_GetObjectItem(config, "portServerObstacle");
+    cJSON* port_item = cJSON_GetObjectItem(config, "portServerTarget");
     if (cJSON_IsNumber(port_item)) {
-        port_ = port_item->valueint;
+        port_server_ = port_item->valueint;
+    }
+
+    ip_array = cJSON_GetObjectItem(config, "IPClient");
+    if (!cJSON_IsArray(ip_array) || cJSON_GetArraySize(ip_array) != 4) {
+        cJSON_Delete(config);
+        return false;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        ip_vector_client[i] = cJSON_GetArrayItem(ip_array, i)->valueint;
+    }
+
+
+    port_item = cJSON_GetObjectItem(config, "portServerTarget");
+    if (cJSON_IsNumber(port_item)) {
+        port_client_ = port_item->valueint;
     }
 
     cJSON_Delete(config);
@@ -97,6 +117,10 @@ bool ObstaclePublisher::parseFromJSON()
 
 bool ObstacleSubscriber::init()
 {
+    if (!parseFromJSON()) {
+        return false;
+    }
+
     DomainParticipantQos server_qos = PARTICIPANT_QOS_DEFAULT;
 
     // Set participant as SERVER
@@ -105,15 +129,15 @@ bool ObstacleSubscriber::init()
 
     // Set SERVER's listening locator for PDP
     Locator_t locator;
-    IPLocator::setIPv4(locator, 127, 0, 0, 1);
-    locator.port = 11811;
+    IPLocator::setIPv4(locator, ip_vector_server[0], ip_vector_server[1], ip_vector_server[2], ip_vector_server[3]);
+    locator.port = port_server_;
     server_qos.wire_protocol().builtin.metatrafficUnicastLocatorList.push_back(locator);
 
     /* Add a remote serve to which this server will connect */
     // Set remote SERVER's listening locator for PDP
     Locator_t remote_locator;
-    IPLocator::setIPv4(remote_locator, 127, 0, 0, 1);
-    remote_locator.port = 11812;
+    IPLocator::setIPv4(remote_locator, ip_vector_client[0], ip_vector_client[1], ip_vector_client[2], ip_vector_client[3]);
+    remote_locator.port = port_client_;
 
     // Add remote SERVER to SERVER's list of SERVERs
     server_qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(remote_locator);

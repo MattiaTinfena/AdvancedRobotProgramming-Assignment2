@@ -26,8 +26,12 @@ private:
     DataReader* reader_;
     Topic* topic_;
     TypeSupport type_;
-    MyTargets received_targets_;  // Variabile che contiene i dati ricevuti
-    bool new_data_;  // Aggiungi questa linea
+    MyTargets received_targets_;  
+    bool new_data_;  
+    std::array<int, 4> ip_vector_server;
+    int port_server_;
+    std::array<int, 4> ip_vector_client;
+    int port_client_;
 
     class SubListener : public DataReaderListener
     {
@@ -51,6 +55,7 @@ public:
     void run();
     MyTargets getMyTargets();  // Rimuovi "const"
     bool hasNewData() const;  // Aggiungi questa linea
+    bool parseFromJSON();
 };
 
 #endif // TARG_SUBSCRIBER_HPP
