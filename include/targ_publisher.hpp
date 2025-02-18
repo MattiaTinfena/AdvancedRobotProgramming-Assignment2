@@ -25,6 +25,8 @@ private:
     Topic* topic_;
     DataWriter* writer_;
     TypeSupport type_;
+    std::array<int, 4> ip_vector;
+    int port_;
 
     class PubListener : public DataWriterListener
     {
@@ -41,6 +43,7 @@ public:
 
     bool init();
     bool publish(MyTargets targets);
+    bool parseFromJSON();
 };
 
 #endif // TARG_PUBLISHER_HPP

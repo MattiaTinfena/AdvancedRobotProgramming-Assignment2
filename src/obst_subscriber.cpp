@@ -27,8 +27,11 @@ ObstacleSubscriber::ObstacleSubscriber()
     , type_(new ObstaclesPubSubType())
     , listener_(this)  
     , new_data_(false)
-{
-}
+    , port_(0)
+    {
+        std::fill(std::begin(ip_vector), std::end(ip_vector), 0);
+    }
+
 
 ObstacleSubscriber::~ObstacleSubscriber()
 {
@@ -45,6 +48,51 @@ ObstacleSubscriber::~ObstacleSubscriber()
         participant_->delete_subscriber(subscriber_);
     }
     DomainParticipantFactory::get_instance()->delete_participant(participant_);
+}
+
+bool ObstaclePublisher::parseFromJSON()
+{
+    FILE* file = fopen("appsettings.json", "r");
+    if (!file) {
+        return false;
+    }
+
+    fseek(file, 0, SEEK_END);
+    long length = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    char* data = (char*)malloc(length + 1);
+    if (!data) {
+        fclose(file);
+        return false;
+    }
+    fread(data, 1, length, file);
+    data[length] = '\0';
+    fclose(file);
+
+    cJSON* config = cJSON_Parse(data);
+    free(data);
+    if (!config) {
+        return false;
+    }
+
+    cJSON* ip_array = cJSON_GetObjectItem(config, "IPServer");
+    if (!cJSON_IsArray(ip_array) || cJSON_GetArraySize(ip_array) != 4) {
+        cJSON_Delete(config);
+        return false;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        ip_vector[i] = cJSON_GetArrayItem(ip_array, i)->valueint;
+    }
+
+
+    cJSON* port_item = cJSON_GetObjectItem(config, "portServerObstacle");
+    if (cJSON_IsNumber(port_item)) {
+        port_ = port_item->valueint;
+    }
+
+    cJSON_Delete(config);
+    return true;
 }
 
 bool ObstacleSubscriber::init()

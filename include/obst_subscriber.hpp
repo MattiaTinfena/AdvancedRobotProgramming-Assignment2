@@ -28,6 +28,8 @@ private:
     TypeSupport type_;
     MyObstacles received_obstacles_;  // Variabile che contiene i dati ricevuti
     bool new_data_;
+    std::array<int, 4> ip_vector;
+    int port_;
 
     class SubListener : public DataReaderListener
     {
@@ -51,6 +53,7 @@ public:
     void run();
     MyObstacles getMyObstacles();  // Metodo per accedere ai dati ricevuti
     bool hasNewData() const;
+    bool parseFromJSON();
 };
 
 #endif // HELLO_WORLD_SUBSCRIBER_HPP

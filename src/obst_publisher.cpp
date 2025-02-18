@@ -7,6 +7,8 @@
 
 #include <chrono>
 #include <thread>
+#include <cjson/cJSON.h>
+#include <fstream>
 
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
@@ -18,6 +20,7 @@
 
 #include "obst_publisher.hpp"  // Include the header file
 #include "auxfunc2.hpp"
+
 
 using namespace eprosima::fastdds::dds;
 using namespace eprosima::fastdds::rtps;
@@ -31,8 +34,10 @@ ObstaclePublisher::ObstaclePublisher()
     , topic_(nullptr)
     , writer_(nullptr)
     , type_(new ObstaclesPubSubType())
-{
-}
+    , port_(0)
+    {
+        std::fill(std::begin(ip_vector), std::end(ip_vector), 0);
+    }
 
 ObstaclePublisher::~ObstaclePublisher()
 {
@@ -51,8 +56,57 @@ ObstaclePublisher::~ObstaclePublisher()
     DomainParticipantFactory::get_instance()->delete_participant(participant_);
 }
 
+bool ObstaclePublisher::parseFromJSON()
+{
+    FILE* file = fopen("appsettings.json", "r");
+    if (!file) {
+        return false;
+    }
+
+    fseek(file, 0, SEEK_END);
+    long length = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    char* data = (char*)malloc(length + 1);
+    if (!data) {
+        fclose(file);
+        return false;
+    }
+    fread(data, 1, length, file);
+    data[length] = '\0';
+    fclose(file);
+
+    cJSON* config = cJSON_Parse(data);
+    free(data);
+    if (!config) {
+        return false;
+    }
+
+    cJSON* ip_array = cJSON_GetObjectItem(config, "IPServer");
+    if (!cJSON_IsArray(ip_array) || cJSON_GetArraySize(ip_array) != 4) {
+        cJSON_Delete(config);
+        return false;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        ip_vector[i] = cJSON_GetArrayItem(ip_array, i)->valueint;
+    }
+
+
+    cJSON* port_item = cJSON_GetObjectItem(config, "portServerObstacle");
+    if (cJSON_IsNumber(port_item)) {
+        port_ = port_item->valueint;
+    }
+
+    cJSON_Delete(config);
+    return true;
+}
+
 bool ObstaclePublisher::init()
 {
+    
+    if (!parseFromJSON()) {
+        return false;
+    }
 
     // Get default participant QoS
     DomainParticipantQos client_qos = PARTICIPANT_QOS_DEFAULT;
@@ -63,8 +117,8 @@ bool ObstaclePublisher::init()
 
     // Set SERVER's listening locator for PDP
     Locator_t locator;
-    IPLocator::setIPv4(locator, 127, 0, 0, 1);
-    locator.port = 11811;
+    IPLocator::setIPv4(locator, ip_vector[0], ip_vector[1], ip_vector[2], ip_vector[3]);
+    locator.port = port_;
 
     // Add remote SERVER to CLIENT's list of SERVERs
     client_qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(locator);
@@ -108,6 +162,7 @@ bool ObstaclePublisher::init()
     }
     return true;
 }
+
 
 bool ObstaclePublisher::publish(MyObstacles myObstacles){
     
