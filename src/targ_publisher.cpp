@@ -33,10 +33,11 @@ TargetPublisher::TargetPublisher()
     , topic_(nullptr)
     , writer_(nullptr)
     , type_(new TargetsPubSubType())
+    , file(nullptr)
     , port_(0)
     {
         std::fill(std::begin(ip_vector), std::end(ip_vector), 0);
-        file = fopen("obstacle_publisher.log", "w");  // Apri il file di log in modalità scrittura
+        file = fopen("log/target.log", "a");  // Apri il file di log in modalità scrittura
         if (!file) {        
             std::cerr << "Errore nell'aprire il file di log!" << std::endl;
         }
@@ -65,22 +66,22 @@ TargetPublisher::~TargetPublisher()
 
 bool TargetPublisher::parseFromJSON()
 {
-    FILE* file = fopen("appsettings.json", "r");
-    if (!file) {
+    FILE* settingsFile = fopen("appsettings.json", "r");
+    if (!settingsFile) {
         return false;
     }
 
-    fseek(file, 0, SEEK_END);
-    long length = ftell(file);
-    fseek(file, 0, SEEK_SET);
+    fseek(settingsFile, 0, SEEK_END);
+    long length = ftell(settingsFile);
+    fseek(settingsFile, 0, SEEK_SET);
     char* data = (char*)malloc(length + 1);
     if (!data) {
-        fclose(file);
+        fclose(settingsFile);
         return false;
     }
-    fread(data, 1, length, file);
+    fread(data, 1, length, settingsFile);
     data[length] = '\0';
-    fclose(file);
+    fclose(settingsFile);
 
     cJSON* config = cJSON_Parse(data);
     free(data);
@@ -123,8 +124,13 @@ bool TargetPublisher::init()
 
     // Set SERVER's listening locator for PDP
     Locator_t locator;
-    IPLocator::setIPv4(locator, ip_vector[0], ip_vector[1], ip_vector[2], ip_vector[3]);
+    IPLocator::setIPv4(locator, (int)ip_vector[0], (int)ip_vector[1], (int)ip_vector[2], (int)ip_vector[3]);
     locator.port = port_;
+
+    if (file) {
+        fprintf(file, "ip %d %d %d %d | port %d\n", ip_vector[0], ip_vector[1], ip_vector[2], ip_vector[3], port_);
+        fflush(file);
+    }
 
     // Add remote SERVER to CLIENT's list of SERVERs
     client_qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(locator);

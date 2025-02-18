@@ -26,6 +26,7 @@ private:
     DataWriter* writer_;
     TypeSupport type_;
     std::array<int, 4> ip_vector;
+    FILE *file;
     int port_;
 
     class PubListener : public DataWriterListener
