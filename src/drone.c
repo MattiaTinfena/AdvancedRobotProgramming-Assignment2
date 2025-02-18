@@ -150,7 +150,7 @@ void target_force(Drone *drone, MyTargets* targets) {
     force_t.y = 0;
 
     for (int i = 0; i < status.targets.number; i++) {
-        if(targets->hit[i] != 0){    
+        if(status.hit[i] != 0){    
             deltaX = targets->x[i] - drone->x;
             deltaY = targets->y[i] - drone->y;
             distance = sqrt(pow(deltaX, 2) + pow(deltaY, 2));
@@ -278,10 +278,9 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < MAX_TARGET; i++) {
         targets.x[i] = 0;
         targets.y[i] = 0;
-        targets.hit[i] = 0;
         status.targets.x[i] = 0;
         status.targets.y[i] = 0;
-        status.targets.hit[i] = 0;
+        status.hit[i] = 0;
     }
     targets.number = 10;
 

@@ -16,7 +16,7 @@
 #include "targ_subscriber.hpp"
 #include "obst_subscriber.hpp"
 #include "cjson/cJSON.h"
-
+#include "log.h"
 // process to whom that asked or received
 #define askwr 1
 #define askrd 0
@@ -45,7 +45,7 @@ int mode = PLAY;
 WINDOW * win;
 WINDOW * map;
 
-FILE *file = NULL;
+// FILE *file = NULL;
 FILE *logFile = NULL;
 FILE *settingsfile = NULL;
 
@@ -59,7 +59,7 @@ inputMessage inputStatus;
 TargetSubscriber targSub;
 ObstacleSubscriber obstSub;
 
-int pids[6] = {0};  // Initialize PIDs to 0
+int pids[6] = {0, 0, 0, 0, 0, 0 };  // Initialize PIDs to 0
 
 int collision = 0;
 int targetsHit = 0;
@@ -101,16 +101,6 @@ void mapInit(FILE *file){
 
     status.targets = targSub.getMyTargets();
     status.obstacles = obstSub.getMyObstacles();
-
-    for(int i = 0; i < MAX_TARGET; i++){
-        fprintf(file,"targX,targY = %d, %d\n", status.targets.x[i], status.targets.y[i]);
-        fflush(file);
-    }
-
-    for(int i = 0; i < MAX_OBSTACLES; i++){
-        fprintf(file,"obstX,obstY = %d, %d\n", status.obstacles.x[i], status.obstacles.y[i]);
-        fflush(file);
-    }
     //Update drone position
     writeMsg(fds[DRONE][recwr], &status, 
             "[BB] Error sending updated map\n", file);
@@ -155,7 +145,7 @@ void drawTarget(WINDOW * win) {
     wattron(win, A_BOLD); // Attiva il grassetto
     wattron(win, COLOR_PAIR(3)); 
     for (int i = 0; i < status.targets.number; i++) {
-        if (status.targets.hit[i]) continue;
+        if (status.hit[i]) continue;
         std::string val_str = std::to_string(i + 1); // Converte il valore in stringa
         mvwprintw(win, (int)(status.targets.y[i] * scaleh), (int)(status.targets.x[i] * scalew), "%s", val_str.c_str()); // Usa un formato esplicito
     } 
@@ -231,20 +221,19 @@ void detectCollision(Message* status, Drone_bb * prev) {
     
     for (int i = 0; i < status->targets.number; i++) {
         
-        if (!status->targets.hit[i] && (((prev->x <= status->targets.x[i] + 2 && status->targets.x[i] - 2 <= status->drone.x)  &&
+        if (!status->hit[i] && (((prev->x <= status->targets.x[i] + 2 && status->targets.x[i] - 2 <= status->drone.x)  &&
             (prev->y <= status->targets.y[i] + 2 && status->targets.y[i]- 2 <= status->drone.y) )||
             ((prev->x >= status->targets.x[i] - 2 && status->targets.x[i] >= status->drone.x + 2) &&
             (prev->y >= status->targets.y[i] - 2 && status->targets.y[i] >= status->drone.y + 2) ))){
                 inputStatus.score += i + 1;
-                status->targets.hit[i] = 1;
+                status->hit[i] = 1;
                 collision = 1;
                 targetsHit++;   
         }
     }
-
 }
 
-void createNewMap(){
+void createNewMap(FILE *file){
 
     storePreviousPosition(&status.drone);
 
@@ -268,7 +257,9 @@ void createNewMap(){
 void closeAll(){
 
     for(int j = 0; j < 6; j++){
-        if (j != BLACKBOARD && pids[j] != 0){ 
+        if (j != BLACKBOARD && pids[j] != 0){
+            fprintf(logFile, "sending kill to %d\n",pids[j]);
+            fflush(logFile); 
             if (kill(pids[j], SIGTERM) == -1) {
             fprintf(logFile,"Process %d is not responding or has terminated\n", pids[j]);
             fflush(logFile);
@@ -277,34 +268,32 @@ void closeAll(){
     }
     fprintf(logFile,"closing blackboard\n");
     fflush(logFile);
-    fclose(file);
     fclose(logFile);
     exit(EXIT_SUCCESS);
-
 }
 
 void quit(){
 
     readInputMsg(fds[INPUT][askrd], &inputMsg, 
-                "[BB] Error reading input", file);
+                "[BB] Error reading input", logFile);
 
     while(inputMsg.msg != 'q'){
                 
-        fprintf(file, "Waiting for quit\n");
-        fflush(file);
+        fprintf(logFile, "Waiting for quit\n");
+        fflush(logFile);
 
         readInputMsg(fds[INPUT][askrd], &inputMsg, 
-                "[BB] Error reading input", file);
+                "[BB] Error reading input", logFile);
 
     }
     
     inputStatus.msg = 'S';
     
     writeInputMsg(fds[INPUT][recwr], &inputStatus, 
-                "[BB] Error sending ack", file);
+                "[BB] Error sending ack", logFile);
     
     readInputMsg(fds[INPUT][askrd], &inputMsg, 
-                "[BB] Error reading input", file);
+                "[BB] Error reading input", logFile);
     
     if(inputMsg.msg == 'R'){    //input ready, all data are saved
         closeAll();
@@ -315,12 +304,13 @@ void sig_handler(int signo) {
     if (signo == SIGUSR1) {
         handler(BLACKBOARD);
     } else if (signo == SIGTERM) {
-        fclose(file);
-        fclose(logFile);
         close(fds[DRONE][recwr]);
         close(fds[DRONE][askrd]);
         close(fds[INPUT][recwr]);
         close(fds[INPUT][askrd]);
+        fprintf(logFile,"Closing Blackboard");
+        fflush(logFile);
+        fclose(logFile);
         exit(EXIT_SUCCESS);
     } else if( signo == SIGWINCH){
         resizeHandler();
@@ -350,13 +340,6 @@ void readConfig() {
 }
 
 int main(int argc, char *argv[]) {
-
-    // Log file opening
-    file = fopen("log/outputbb.txt", "w");
-    if (file == NULL) {
-        perror("Errore nell'apertura del file");
-        exit(1);
-    }
 
     logFile = fopen("log/logfile.log", "w");
     if (logFile == NULL) {
@@ -400,10 +383,14 @@ int main(int argc, char *argv[]) {
         token2 = strtok(NULL, ",");
     }
 
+    for(int i = 0; i < MAX_TARGET; i++){
+        status.hit[i] = 0;
+    }
+
     if (!targSub.init()){
 
-        fprintf(file,"Problem targ");
-        fflush(file);
+        fprintf(logFile,"Problem targ");
+        fflush(logFile);
         //--------------------
         // LOG
         //----------------------
@@ -413,8 +400,8 @@ int main(int argc, char *argv[]) {
 
     if (!obstSub.init()){
 
-        fprintf(file,"Problem Obst");
-        fflush(file);
+        fprintf(logFile,"Problem Obst");
+        fflush(logFile);
         //--------------------
         // LOG
         //----------------------
@@ -456,9 +443,21 @@ int main(int argc, char *argv[]) {
     sa.sa_handler = sig_handler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
-    sigaction(SIGUSR1, &sa, NULL);
-    sigaction(SIGTERM, &sa, NULL);
-    sigaction(SIGWINCH, &sa, NULL);
+
+    if (sigaction(SIGUSR1, &sa, NULL) == -1) {
+        perror("sigaction");
+        exit(EXIT_FAILURE);
+    }
+
+    if (sigaction(SIGTERM, &sa, NULL) == -1) {
+        perror("Error while setting sigaction for SIGTERM");
+        exit(EXIT_FAILURE);
+    }
+
+    if (sigaction(SIGWINCH, &sa, NULL) == -1) {
+        perror("Error while setting sigaction for SIGWINCH");
+        exit(EXIT_FAILURE);
+    }
 
     initscr();
     start_color();
@@ -508,32 +507,31 @@ int main(int argc, char *argv[]) {
 
     // Write the PID values to the output file
     for (int i = 0; i < 6; i++) {
-        fprintf(file, "pid[%d] = %d\n", i, pids[i]);
-        fflush(file);
+        fprintf(logFile, "pid[%d] = %d\n", i, pids[i]);
+        fflush(logFile);
     }
 
     inputStatus.score = 0;
 
     readInputMsg(fds[INPUT][askrd], &inputStatus, 
-                "Error reading input", file);
+                "Error reading input", logFile);
 
     inputStatus.msg = 'A';
     writeInputMsg(fds[INPUT][recwr], &inputStatus, 
-                "Error sending ack", file);
+                "Error sending ack", logFile);
 
     readConfig();
 
-    mapInit(file);
+    mapInit(logFile);
 
     while (1) {
         
         obstSub.run();
         targSub.run();
+
+        
         
         if (targetsHit >= status.targets.number) {
-
-            fprintf(file, "targets hit");
-            fflush(file);
 
             int y_center = (nh - 2) / 2;
             int x_center = nw / 2;
@@ -550,23 +548,16 @@ int main(int argc, char *argv[]) {
 
         if (targSub.hasNewData() || obstSub.hasNewData()){
 
-            fprintf(file, "new data");
-            fflush(file);
-
-            MyTargets auxTarg;
             if(targSub.hasNewData()){
-                auxTarg = targSub.getMyTargets();
-            }
-
-            for(int i = 0; i < status.targets.number; i++){
-                status.targets.x[i] = auxTarg.x[i];
-                status.targets.y[i] = auxTarg.y[i];
+                status.targets = targSub.getMyTargets();
             }
 
             if(obstSub.hasNewData()){
                 status.obstacles = obstSub.getMyObstacles();
             }
-            createNewMap();
+            createNewMap(logFile);
+
+            LOGNEWMAP(status);
         }
 
         // // Update the main window
@@ -583,9 +574,9 @@ int main(int argc, char *argv[]) {
 
         sigset_t mask;
         sigemptyset(&mask);
-        sigaddset(&mask, SIGUSR1);
-        sigaddset(&mask, SIGTERM);
-        sigaddset(&mask, SIGWINCH);
+        // sigaddset(&mask, SIGUSR1);
+        // sigaddset(&mask, SIGTERM);
+        // sigaddset(&mask, SIGWINCH);
 
         //FDs setting for select
         FD_ZERO(&readfds);
@@ -627,7 +618,7 @@ int main(int argc, char *argv[]) {
             if (selected == fds[DRONE][askrd]){
          
                 readMsg(fds[DRONE][askrd], &msg,
-                                "[BB] Error reading drone position", file);
+                                "[BB] Error reading drone position", logFile);
 
 
                 if(msg.msg == 'R'){
@@ -636,12 +627,12 @@ int main(int argc, char *argv[]) {
                         collision = 0;
                         
                         writeMsg(fds[DRONE][recwr], &status, 
-                                "[BB] Error asking drone position", file);
+                                "[BB] Error asking drone position", logFile);
 
                         storePreviousPosition(&status.drone);
 
                         readMsg(fds[DRONE][askrd], &status,
-                                "[BB] Error reading drone position", file);
+                                "[BB] Error reading drone position", logFile);
 
                     }else{
                         
@@ -651,14 +642,14 @@ int main(int argc, char *argv[]) {
                         status.msg = 'A';
 
                         writeMsg(fds[DRONE][recwr], &status, 
-                                "[BB] Error asking drone position", file);
+                                "[BB] Error asking drone position", logFile);
 
                         status.msg = '\0';
 
                         storePreviousPosition(&status.drone);
 
                         readMsg(fds[DRONE][askrd], &status,
-                                "[BB] Error reading drone position", file);
+                                "[BB] Error reading drone position", logFile);
 
                         // fprintf(file, "Drone updated position: %d,%d\n", status.drone.x, status.drone.y);
                         // fflush(file);
@@ -669,7 +660,7 @@ int main(int argc, char *argv[]) {
                 
                 
                 readInputMsg(fds[INPUT][askrd], &inputMsg, 
-                                "[BB] Error reading input", file);
+                                "[BB] Error reading input", logFile);
 
 
                 if(inputMsg.msg == 'P'){
@@ -678,35 +669,35 @@ int main(int argc, char *argv[]) {
                     inputStatus.msg = 'A';
 
                     writeInputMsg(fds[INPUT][recwr], &inputStatus, 
-                                "[BB] Error sending ack", file);
+                                "[BB] Error sending ack", logFile);
 
-                    fprintf(file, "Sended ack\n");
-                    fflush(file);
+                    // fprintf(logFile, "Sended ack\n");
+                    // fflush(logFile);
                   
                     inputMsg.msg = 'A';
 
                     while(inputMsg.msg != 'P' && inputMsg.msg != 'q'){
                         
-                        fprintf(file, "Waiting for play\n");
-                        fflush(file);
+                        fprintf(logFile, "Waiting for play\n");
+                        fflush(logFile);
 
                         readInputMsg(fds[INPUT][askrd], &inputMsg, 
-                                "[BB] Error reading input", file);
+                                "[BB] Error reading input", logFile);
 
                     }
                     if(inputMsg.msg == 'P'){
                         mode = PLAY;
                     }else if(inputMsg.msg == 'q'){
-                        fprintf(file, "Quit\n");
-                        fflush(file);
+                        fprintf(logFile, "Quit\n");
+                        fflush(logFile);
                         
                         inputStatus.msg = 'S';
                         
                         writeInputMsg(fds[INPUT][recwr], &inputStatus, 
-                                    "[BB] Error sending ack", file);
+                                    "[BB] Error sending ack", logFile);
                         
                         readInputMsg(fds[INPUT][askrd], &inputMsg, 
-                                    "[BB] Error reading input", file);
+                                    "[BB] Error reading input", logFile);
                         
                         if(inputMsg.msg == 'R'){    //input ready, all data are saved
 
@@ -718,10 +709,10 @@ int main(int argc, char *argv[]) {
                 }else if (inputMsg.msg == 'q'){
                     inputStatus.msg = 'S';
                     writeInputMsg(fds[INPUT][recwr], &inputStatus, 
-                                "[BB] Error sending ack", file);
+                                "[BB] Error sending ack", logFile);
                     
                     readInputMsg(fds[INPUT][askrd], &inputMsg, 
-                                "[BB] Error reading input", file);
+                                "[BB] Error reading input", logFile);
                     
                     if(inputMsg.msg == 'R'){    //input ready, all data are saved
 
@@ -730,29 +721,29 @@ int main(int argc, char *argv[]) {
                 }
 
                 readMsg(fds[DRONE][askrd], &msg,
-                                "[BB] Error reading drone ready", file);
+                                "[BB] Error reading drone ready", logFile);
 
                 if(msg.msg == 'R'){
 
-                    fprintf(file, "drone ready\n"); 
-                    fflush(file);
+                    // fprintf(file, "drone ready\n"); 
+                    // fflush(file);
 
                     status.msg = 'I';
                     strncpy(status.input, inputMsg.input, sizeof(inputStatus.input));
                     
                     writeMsg(fds[DRONE][recwr], &status, 
-                                "[BB] Error asking drone position", file);     
+                                "[BB] Error asking drone position", logFile);     
                 }
 
                 storePreviousPosition(&status.drone);
 
                 readMsg(fds[DRONE][askrd], &status,
-                                "[BB] Error reading drone position", file);
+                                "[BB] Error reading drone position", logFile);
 
                 inputStatus.droneInfo = status.drone;
                 
                 writeInputMsg(fds[INPUT][recwr], &inputStatus, 
-                                "[BB] Error asking drone position", file); 
+                                "[BB] Error asking drone position", logFile); 
             }else{
             }
         }

@@ -19,8 +19,6 @@ int nh, nw;
 float scaleh = 1.0, scalew = 1.0;
 
 int btnValues[9] ={0};
-// char *default_text[9] = {"L-UP", "UP", "R-UP", "LEFT", "CENTER", "RIGHT", "L-DOWN", "DOWN", "R-DOWN"};
-// char *menu_text[9] = {"W", "E", "R", "S", "D", "F", "X", "C", "V"};
 char *droneInfoText[6] = {"Position x: ", "Position y: ", "Force x: ", "Force y: ", "Speed x ", "Speed y: "};
 char *menuBtn[2] = {"Press P to pause", "Press Q to quit"};
 
@@ -54,7 +52,7 @@ void sig_handler(int signo) {
     if (signo == SIGUSR1) {
         handler(INPUT);
     }else if(signo == SIGTERM){
-        LOGPROCESSDIED();
+        LOGPROCESSDIED(); 
         fclose(inputFile);
         close(fds[recrd]);
         close(fds[askwr]);
@@ -118,9 +116,9 @@ void setName() {
     box(stdscr, 0, 0);
 
     const char *prompt = "Choose a name:";
-    const int prompt_row = nh / 2 - 2; // Riga leggermente sopra il centro
-    const int name_row = nh / 2;     // Riga per il nome
-    const int error_row = nh / 2 + 2; // Riga per i messaggi di errore
+    const int prompt_row = nh / 2 - 2;
+    const int name_row = nh / 2; 
+    const int error_row = nh / 2 + 2;
 
     mvwprintw(stdscr, prompt_row, (nw - strlen(prompt)) / 2, "%s", prompt);
     mvwprintw(stdscr, name_row, (nw - strlen(inputStatus.name)) / 2, "%s", inputStatus.name);
@@ -479,8 +477,14 @@ int main(int argc, char *argv[]) {
     //memset(&sa, 0, sizeof(sa));
     sa.sa_handler = sig_handler;
     sa.sa_flags = SA_RESTART;  // Riavvia read/write interrotte
+    
     if (sigaction(SIGUSR1, &sa, NULL) == -1) {
         perror("sigaction");
+        exit(EXIT_FAILURE);
+    }
+
+    if (sigaction(SIGTERM, &sa, NULL) == -1) {
+        perror("Error while setting sigaction for SIGTERM");
         exit(EXIT_FAILURE);
     }
 
@@ -521,7 +525,6 @@ int main(int argc, char *argv[]) {
             if ((ch = getch()) == ERR) {
                 //nessun tasto premuto dall'utente
                 usleep(100000);
-
                 werase(win);
                 werase(control);
                 box(win, 0, 0);

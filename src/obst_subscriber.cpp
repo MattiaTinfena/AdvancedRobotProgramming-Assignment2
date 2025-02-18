@@ -57,14 +57,14 @@ bool ObstacleSubscriber::init()
 
     // Set SERVER's listening locator for PDP
     Locator_t locator;
-    IPLocator::setIPv4(locator, 127, 0, 0, 1);
+    IPLocator::setIPv4(locator, 192, 168, 15, 118);
     locator.port = 11811;
     server_qos.wire_protocol().builtin.metatrafficUnicastLocatorList.push_back(locator);
 
     /* Add a remote serve to which this server will connect */
     // Set remote SERVER's listening locator for PDP
     Locator_t remote_locator;
-    IPLocator::setIPv4(remote_locator, 127, 0, 0, 1);
+    IPLocator::setIPv4(remote_locator, 192, 168, 15, 96);
     remote_locator.port = 11812;
 
     // Add remote SERVER to SERVER's list of SERVERs

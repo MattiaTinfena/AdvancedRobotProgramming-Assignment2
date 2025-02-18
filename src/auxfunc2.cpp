@@ -297,7 +297,7 @@ void msgInit(Message* status){
     for(int i = 0; i < MAX_TARGET; i++){
         status->targets.x[i] = 0;
         status->targets.y[i] = 0; 
-        status->targets.hit[i] = 0;
+        status->hit[i] = 0;
     }
     status->targets.number = 0;
     for(int i = 0; i < MAX_OBSTACLES; i++){
