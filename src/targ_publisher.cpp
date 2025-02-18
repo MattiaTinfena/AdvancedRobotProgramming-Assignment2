@@ -33,16 +33,17 @@ TargetPublisher::TargetPublisher()
     , topic_(nullptr)
     , writer_(nullptr)
     , type_(new TargetsPubSubType())
-    , file(nullptr)
+    , targFile(nullptr)
     , port_(0)
-    {
-        std::fill(std::begin(ip_vector), std::end(ip_vector), 0);
-        file = fopen("log/target.log", "a");  // Apri il file di log in modalità scrittura
-        if (!file) {        
-            std::cerr << "Errore nell'aprire il file di log!" << std::endl;
-        }
+{
+    std::fill(std::begin(ip_vector), std::end(ip_vector), 0);
+    targFile = fopen("log/target.log", "a");  // Apri il file di log in modalità append
+    if (!targFile) {        
+        std::cerr << "Errore nell'aprire il file di log!" << std::endl;
     }
+}
 
+// Distruttore di TargetPublisher
 TargetPublisher::~TargetPublisher()
 {
     if (writer_ != nullptr)
@@ -58,12 +59,13 @@ TargetPublisher::~TargetPublisher()
         participant_->delete_topic(topic_);
     }
 
-    if (file) {
-        fclose(file);
+    if (targFile) {
+        fclose(targFile);
     }
     DomainParticipantFactory::get_instance()->delete_participant(participant_);
 }
 
+// Parsing della configurazione da file JSON
 bool TargetPublisher::parseFromJSON()
 {
     FILE* settingsFile = fopen("appsettings.json", "r");
@@ -127,9 +129,9 @@ bool TargetPublisher::init()
     IPLocator::setIPv4(locator, (int)ip_vector[0], (int)ip_vector[1], (int)ip_vector[2], (int)ip_vector[3]);
     locator.port = port_;
 
-    if (file) {
-        fprintf(file, "ip %d %d %d %d | port %d\n", ip_vector[0], ip_vector[1], ip_vector[2], ip_vector[3], port_);
-        fflush(file);
+    if (targFile) {
+        fprintf(targFile, "ip %d %d %d %d | port %d\n", ip_vector[0], ip_vector[1], ip_vector[2], ip_vector[3], port_);
+        fflush(targFile);
     }
 
     // Add remote SERVER to CLIENT's list of SERVERs
@@ -141,7 +143,7 @@ bool TargetPublisher::init()
 
     participant_ = DomainParticipantFactory::get_instance()->create_participant(0, client_qos);
     
-       if (participant_ == nullptr)
+    if (participant_ == nullptr)
     {
         return false;
     }
@@ -190,12 +192,10 @@ bool TargetPublisher::publish(MyTargets myTargets){
         my_message_.targets_number(myTargets.number);
 
         writer_->write(&my_message_);
+        // LOGPUBLISHNEWTARGET(this, my_message_);
         return true;
     }
     return false;
-    //--------------------
-    // TO LOG
-    //--------------------
 }
 
 // Implement the listener class methods
@@ -210,18 +210,13 @@ TargetPublisher::PubListener::~PubListener()
 
 void TargetPublisher::PubListener::on_publication_matched(DataWriter* writer, const PublicationMatchedStatus& info)
 {
-    if (info.current_count_change == 1)
-    {
+    if (info.current_count_change == 1) {
         matched_ = info.total_count;
-        // std::cout << "Target Publisher matched." << std::endl;
     }
-    else if (info.current_count_change == -1)
-    {
+    else if (info.current_count_change == -1) {
         matched_ = info.total_count;
-        // std::cout << "Target Publisher unmatched." << std::endl;
     }
-    else
-    {
-        // std::cout << info.current_count_change << " is not a valid value for PublicationMatchedStatus current count change." << std::endl;
-    }
+
+    // LOGPUBLISHERMATCHING(parent_, info.current_count_change);  // Passiamo parent_
+
 }

@@ -32,7 +32,7 @@ private:
     int port_server_;
     std::array<int, 4> ip_vector_client;
     int port_client_;
-    FILE *file;
+    FILE *logFile;
 
     class SubListener : public DataReaderListener
     {
@@ -54,9 +54,9 @@ public:
 
     bool init();
     void run();
-    MyObstacles getMyObstacles();  // Metodo per accedere ai dati ricevuti
+    MyObstacles getMyObstacles();
     bool hasNewData() const;
     bool parseFromJSON();
 };
 
-#endif // HELLO_WORLD_SUBSCRIBER_HPP
+#endif // OBST_SUBSCRIBER_HPP

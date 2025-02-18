@@ -34,13 +34,13 @@ ObstaclePublisher::ObstaclePublisher()
     , topic_(nullptr)
     , writer_(nullptr)
     , type_(new ObstaclesPubSubType())
-    , file(nullptr)
+    , obstFile(nullptr)
     , port_(0)
     {
         std::fill(std::begin(ip_vector), std::end(ip_vector), 0);
-        file = fopen("log/obstacle.log", "a");
-        if (file == NULL) {
-            perror("Errore nell'apertura del file");
+        obstFile = fopen("log/obstacle.log", "a");
+        if (obstFile == NULL) {
+            perror("Errore nell'apertura del obstFile");
             exit(1);
         }
     }
@@ -59,8 +59,8 @@ ObstaclePublisher::~ObstaclePublisher()
     {
         participant_->delete_topic(topic_);
     }
-    if (file) {
-        fclose(file);
+    if (obstFile) {
+        fclose(obstFile);
     }
     DomainParticipantFactory::get_instance()->delete_participant(participant_);
 }
@@ -129,9 +129,9 @@ bool ObstaclePublisher::init()
     IPLocator::setIPv4(locator, (int)ip_vector[0], (int)ip_vector[1], (int)ip_vector[2], (int)ip_vector[3]);
     locator.port = port_;
 
-    if (file) {
-        fprintf(file, "ip %d %d %d %d | port %d\n", ip_vector[0], ip_vector[1], ip_vector[2], ip_vector[3], port_);
-        fflush(file);
+    if (obstFile) {
+        fprintf(obstFile, "ip %d %d %d %d | port %d\n", ip_vector[0], ip_vector[1], ip_vector[2], ip_vector[3], port_);
+        fflush(obstFile);
     }
 
     // Add remote SERVER to CLIENT's list of SERVERs
@@ -193,12 +193,10 @@ bool ObstaclePublisher::publish(MyObstacles myObstacles){
         my_message_.obstacles_number(myObstacles.number);
 
         writer_->write(&my_message_);
+        // LOGPUBLISHNEWTARGET(my_message_);
         return true;
     }
     return false;
-    //--------------------
-    // TO LOG
-    //--------------------
 }
 
 // Implement the listener class methods
@@ -227,4 +225,6 @@ void ObstaclePublisher::PubListener::on_publication_matched(DataWriter* writer, 
     {
         // std::cout << info.current_count_change << " is not a valid value for PublicationMatchedStatus current count change." << std::endl;
     }
+
+    // LOGPUBLISHERMATCHING(info.current_count_change);
 }

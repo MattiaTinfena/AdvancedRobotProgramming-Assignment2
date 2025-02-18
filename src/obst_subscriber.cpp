@@ -31,12 +31,12 @@ ObstacleSubscriber::ObstacleSubscriber()
     , new_data_(false)
     , port_server_(0)
     , port_client_(0)
-    , file(nullptr)
+    , logFile(nullptr)
     {
         std::fill(std::begin(ip_vector_server), std::end(ip_vector_server), 0);
         std::fill(std::begin(ip_vector_client), std::end(ip_vector_client), 0);
-        file = fopen("log/logfile.log", "a");
-        if (file == NULL) {
+        logFile = fopen("log/logfile.log", "a");
+        if (logFile == NULL) {
             perror("Errore nell'apertura del file");
             exit(1);
         }
@@ -58,8 +58,8 @@ ObstacleSubscriber::~ObstacleSubscriber()
         participant_->delete_subscriber(subscriber_);
     }
 
-    if (file) {
-        fclose(file);
+    if (logFile) {
+        fclose(logFile);
     }
     DomainParticipantFactory::get_instance()->delete_participant(participant_);
 }
@@ -143,9 +143,9 @@ bool ObstacleSubscriber::init()
     locator.port = port_server_;
     server_qos.wire_protocol().builtin.metatrafficUnicastLocatorList.push_back(locator);
 
-    if (file) {
-        fprintf(file, "ip %d %d %d %d | port %d\n", ip_vector_server[0], ip_vector_server[1], ip_vector_server[2], ip_vector_server[3], port_server_);
-        fflush(file);
+    if (logFile) {
+        fprintf(logFile, "obst ip server %d %d %d %d | port %d\n", ip_vector_server[0], ip_vector_server[1], ip_vector_server[2], ip_vector_server[3], port_server_);
+        fflush(logFile);
     }
 
     /* Add a remote serve to which this server will connect */
@@ -154,9 +154,9 @@ bool ObstacleSubscriber::init()
     IPLocator::setIPv4(remote_locator, (int)ip_vector_client[0], (int)ip_vector_client[1], (int)ip_vector_client[2], (int)ip_vector_client[3]);
     remote_locator.port = port_client_;
 
-    if (file) {
-        fprintf(file, "ip %d %d %d %d | port %d\n", ip_vector_client[0], ip_vector_client[1], ip_vector_client[2], ip_vector_client[3], port_client_);
-        fflush(file);
+    if (logFile) {
+        fprintf(logFile, "obst ip client %d %d %d %d | port %d\n", ip_vector_client[0], ip_vector_client[1], ip_vector_client[2], ip_vector_client[3], port_client_);
+        fflush(logFile);
     }
 
     // Add remote SERVER to SERVER's list of SERVERs
@@ -223,18 +223,7 @@ ObstacleSubscriber::SubListener::~SubListener()
 
 void ObstacleSubscriber::SubListener::on_subscription_matched(DataReader* reader, const SubscriptionMatchedStatus& info)
 {
-    if (info.current_count_change == 1)
-    {
-        // std::cout << "Obstacle Subscriber matched." << std::endl;
-    }
-    else if (info.current_count_change == -1)
-    {
-        // std::cout << "Obstacle Subscriber unmatched." << std::endl;
-    }
-    else
-    {
-        // std::cout << info.current_count_change << " is not a valid value for SubscriptionMatchedStatus current count change." << std::endl;
-    }
+    // LOGPUBLISHERMATCHING(info.current_count_change, parent_);
 }
 
 void convertObstaclesToMyObstacles(const Obstacles& obstacles, MyObstacles& myObstacles)

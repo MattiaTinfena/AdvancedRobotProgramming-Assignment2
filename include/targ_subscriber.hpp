@@ -26,13 +26,13 @@ private:
     DataReader* reader_;
     Topic* topic_;
     TypeSupport type_;
-    MyTargets received_targets_;  
-    bool new_data_;  
+    MyTargets received_targets_;
+    bool new_data_;
     std::array<int, 4> ip_vector_server;
     int port_server_;
     std::array<int, 4> ip_vector_client;
     int port_client_;
-    FILE *file;
+    FILE *logFile;
 
     class SubListener : public DataReaderListener
     {

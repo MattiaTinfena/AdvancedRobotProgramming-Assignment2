@@ -28,12 +28,12 @@ TargetSubscriber::TargetSubscriber()
     , new_data_(false)  // Inizializza new_data_
     , port_server_(0)
     , port_client_(0)
-    , file(nullptr)
+    , logFile(nullptr)
     {
         std::fill(std::begin(ip_vector_server), std::end(ip_vector_server), 0);
         std::fill(std::begin(ip_vector_client), std::end(ip_vector_client), 0);
-        file = fopen("log/logfile.log", "a");
-        if (file == NULL) {
+        logFile = fopen("log/logfile.log", "a");
+        if (logFile == NULL) {
             perror("Errore nell'apertura del file");
             exit(1);
         }
@@ -53,8 +53,8 @@ TargetSubscriber::~TargetSubscriber()
     {
         participant_->delete_subscriber(subscriber_);
     }
-    if (file) {
-        fclose(file);
+    if (logFile) {
+        fclose(logFile);
     }
     DomainParticipantFactory::get_instance()->delete_participant(participant_);
 }
@@ -144,6 +144,16 @@ bool TargetSubscriber::init()
     IPLocator::setIPv4(remote_locator, (int)ip_vector_client[0], (int)ip_vector_client[1], (int)ip_vector_client[2], (int)ip_vector_client[3]);
     remote_locator.port = port_client_;
 
+    if (logFile) {
+        fprintf(logFile, "targ ip server %d %d %d %d | port %d\n", ip_vector_server[0], ip_vector_server[1], ip_vector_server[2], ip_vector_server[3], port_server_);
+        fflush(logFile);
+    }
+
+    if (logFile) {
+        fprintf(logFile, "targ ip client %d %d %d %d | port %d\n", ip_vector_client[0], ip_vector_client[1], ip_vector_client[2], ip_vector_client[3], port_server_);
+        fflush(logFile);
+    }
+
     // Add remote SERVER to SERVER's list of SERVERs
     server_qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(remote_locator);
 
@@ -207,18 +217,7 @@ TargetSubscriber::SubListener::~SubListener()
 
 void TargetSubscriber::SubListener::on_subscription_matched(DataReader* reader, const SubscriptionMatchedStatus& info)
 {
-    if (info.current_count_change == 1)
-    {
-        // std::cout << "Target Subscriber matched." << std::endl;
-    }
-    else if (info.current_count_change == -1)
-    {
-        // std::cout << "Target Subscriber unmatched." << std::endl;
-    }
-    else
-    {
-        // std::cout << info.current_count_change << " is not a valid value for SubscriptionMatchedStatus current count change." << std::endl;
-    }
+    // LOGSUBSCRIPTION(info.current_count_change, parent_);
 }
 
 void convertTargetsToMyTargets(const Targets& targets, MyTargets& myTargets)
