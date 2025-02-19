@@ -2,6 +2,7 @@
 #define AUXFUNC_H
 
 #include <signal.h>
+#include <stdio.h>
 
 #define DRONE 0        
 #define INPUT 1        
@@ -59,6 +60,7 @@ typedef struct {
     float x;
     float y;
 } Speed;
+
 typedef struct {
     int x[MAX_TARGET];
     int y[MAX_TARGET];
@@ -80,7 +82,7 @@ typedef struct {
     MyObstacles obstacles;
 } Message;
 
-typedef struct{
+typedef struct {
     char msg;
     char name[MAX_LINE_LENGTH];
     char input[10];
@@ -89,7 +91,6 @@ typedef struct{
 } inputMessage;
 
 typedef struct {
-    
     char name[MAX_LINE_LENGTH];
     int score;
     int level;
@@ -97,20 +98,37 @@ typedef struct {
 
 extern char jsonBuffer[MAX_FILE_SIZE];
 
+// Funzioni di logging e gestione errori
 void handleLogFailure();
+
+// Funzioni di lettura/scrittura sicura su file
 int writeSecure(const char* filename, char* data, unsigned long numeroRiga, char mode);
 int readSecure(const char* filename, char* data, unsigned long numeroRiga);
+
+// Gestione segnali
 void handler(int id);
+
+// Funzioni di comunicazione con pipe
 void writeMsg(int pipeFds, Message* msg, const char* error, FILE* file);
 void readMsg(int pipeFds, Message* msgOut, const char* error, FILE* file);
 void writeInputMsg(int pipeFds, inputMessage* msg, const char* error, FILE* file);
 void readInputMsg(int pipeFds, inputMessage* msgOut, const char* error, FILE* file);
-void fdsRead (int argc, char* argv[], int* fds);
-int writePid(char* file, char mode, int row, char id);
+
+// Funzione per leggere file descriptor da input
+void fdsRead(int argc, char* argv[], int* fds);
+
+// Funzione per scrivere il PID su file
+int writePid(const char* file, char mode, int row, char id);
+
+// Funzioni per stampare messaggi su file
 void printInputMessageToFile(FILE *file, inputMessage* msg);
 void printMessageToFile(FILE *file, Message* msg);
+
+// Funzioni di inizializzazione delle strutture dati
 void msgInit(Message* status);
 void inputMsgInit(inputMessage* status);
+
+// Funzione per ottenere l'orario formattato
 void getFormattedTime(char *buffer, size_t size);
 
-#endif
+#endif // AUXFUNC_H

@@ -11,7 +11,7 @@
 #include <fastdds/dds/subscriber/Subscriber.hpp>
 #include <fastdds/dds/topic/TypeSupport.hpp>
 #include "obst_subscriber.hpp"  // Include the header file
-#include "auxfunc2.hpp"
+#include "auxfunc.h"
 
 using namespace eprosima::fastdds::dds;
 using namespace eprosima::fastdds::rtps;

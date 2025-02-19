@@ -7,16 +7,34 @@
 #include <time.h>
 // #include "auxfunc.h"
 
-// Macro di configurazione
+//Macro's configuration
 #define MAX_LINE_LENGTH 100
 #define USE_DEBUG 1
 
-// Variabili globali
+//Global variables
 extern FILE *logFile;
 char difficultyStr[10];
 
+//Functions definition
+void drawDrone(WINDOW * win);
+void drawObstacle(WINDOW * win);
+void drawTarget(WINDOW * win);
+void drawMenu(WINDOW* win);
+void readConfig();
+void resizeHandler();
+void sig_handler(int signo);
+int randomSelect(int n);
+void detectCollision(Message* status, Drone_bb * prev);
+void createNewMap(FILE *file);
+void closeAll();
+void quit();
+void storePreviousPosition(Drone_bb *drone);
+void mapInit(FILE *file);
 
-// Macro per il logging della configurazione
+/*********************************************************************************************************************/
+/********************************************FUNCTIONS TO LOG*********************************************************/
+/*********************************************************************************************************************/
+
 #define LOGCONFIG(status) {                                                      \
     if (!logFile) {                                                              \
         perror("Log file not initialized.\n");                                   \
