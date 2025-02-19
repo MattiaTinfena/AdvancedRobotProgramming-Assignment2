@@ -296,6 +296,9 @@ Force total_force(Force drone, Force obstacle, Force target, Force boundary){
 
 void updatePosition(Drone *p, Force force, int mass, Speed *speed, Speed *speedPrev) {
 
+    fprintf(droneFile, "K: %d, mass: %d\n", K, mass);
+    fflush(droneFile);
+
     float x_pos = (2*mass*p->previous_x[0] + periodms*K*p->previous_x[0] + force.x*periodms*periodms - mass * p->previous_x[1]) / (mass + periodms * K);
     float y_pos = (2*mass*p->previous_y[0] + periodms*K*p->previous_y[0] + force.y*periodms*periodms - mass * p->previous_y[1]) / (mass + periodms * K);
 
@@ -322,6 +325,7 @@ void updatePosition(Drone *p, Force force, int mass, Speed *speed, Speed *speedP
 void newDrone (Drone* drone, MyTargets* targets, char* directions, char inst){
     target_force(drone, targets);
     obstacle_force(drone);
+    boundary_force(drone);
     if(inst == 'I'){
         drone_force(directions);
     }
