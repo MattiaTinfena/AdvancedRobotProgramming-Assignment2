@@ -275,7 +275,7 @@ int main(int argc, char *argv[]) {
         wrefresh(map);
 
         sigset_t mask;
-        sigemptyset(&mask);
+        sigfillset(&mask);
 
         //FDs setting for select
         FD_ZERO(&readfds);

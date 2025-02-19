@@ -223,7 +223,7 @@ void target_force(Drone *drone, MyTargets* targets) {
 
     for (int i = 0; i < targets->number; i++) {
 
-        if(status.hit[i] > 0){    
+        if(status.hit[i] == 0){    
             deltaX = targets->x[i] - drone->x;
             deltaY = targets->y[i] - drone->y;
             distance = hypot(deltaX, deltaY);
