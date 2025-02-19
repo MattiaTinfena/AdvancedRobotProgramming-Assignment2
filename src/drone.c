@@ -1,33 +1,19 @@
-#include <ncurses.h>
 #include <stdio.h>
 #include <string.h>
-#include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
 #include "auxfunc.h"
 #include <math.h>
 #include <signal.h>
 #include "drone.h"
+#include "cjson/cJSON.h"
 
-// process that ask or receive
-#define askwr 1
-#define askrd 0
-#define recwr 3
-#define recrd 2
-
-#define PERIOD 10 //50 //[Hz]
-#define DRONEMASS 1
-
-#define MAX_DIRECTIONS 80
-
-float K = 1.0;
+#define PERIOD 10000
 
 Force force_d = {0, 0};
 Force force_o = {0, 0};
 Force force_t = {0, 0};
+Force force_b = {0, 0};
 
 Force force = {0, 0};
 
@@ -38,206 +24,21 @@ MyTargets targets;
 MyObstacles obstacles;
 Message status;
 
+FILE *droneFile = NULL;
+FILE *settingsfile = NULL;
 
 int pid;
 int fds[4];
 
-FILE *droneFile = NULL;
+int periodms = PERIOD/10000; 
 
-typedef struct
-{
-    float x;
-    float y;
-    float previous_x[2]; // 0 is one before and 1 is is two before
-    float previous_y[2];
-
-} Drone;
-
-
-void updatePosition(Drone *p, Force force, int mass, Speed *speed, Speed *speedPrev) {
-
-    float x_pos = (2*mass*p->previous_x[0] + PERIOD*K*p->previous_x[0] + force.x*PERIOD*PERIOD - mass * p->previous_x[1]) / (mass + PERIOD * K);
-    float y_pos = (2*mass*p->previous_y[0] + PERIOD*K*p->previous_y[0] + force.y*PERIOD*PERIOD - mass * p->previous_y[1]) / (mass + PERIOD * K);
-
-    p->x = x_pos;
-    p->y = y_pos;
-
-
-    if (p->x < 0 || p->x >= WINDOW_LENGTH) force_d.x = 0;
-    if (p->y < 0 || p->y >= WINDOW_WIDTH) force_d.y = 0;
-
-    if (p->x < 0) p->x = 0;
-    else if (p->x >= WINDOW_LENGTH) p->x = WINDOW_LENGTH - 1;
-    if (p->y < 0) p->y = 0;
-    else if (p->y >= WINDOW_WIDTH) p->y = WINDOW_WIDTH - 1;
-
-    p->previous_x[1] = p->previous_x[0]; 
-    p->previous_x[0] = p->x;  
-    p->previous_y[1] = p->previous_y[0];
-    p->previous_y[0] = p->y;
-
-    float speedX = (speedPrev->x + force.x/mass * (1.0f/PERIOD));
-    float speedY = (speedPrev->y + force.y/mass * (1.0f/PERIOD));
-
-    speedPrev->x = speed->x;
-    speedPrev->y = speed->y;
-
-    speed->x = speedX;
-    speed->y = speedY;
-
-
-}
-
-void drone_force(char* direction) {
-    
-    if (strcmp(direction, "") != 0) {
-        // Imposta direzione x
-        if (strcmp(direction, "right") == 0 || strcmp(direction, "upright") == 0 || strcmp(direction, "downright") == 0) {
-            force_d.x += STEP;
-        } else if (strcmp(direction, "left") == 0 || strcmp(direction, "upleft") == 0 || strcmp(direction, "downleft") == 0) {
-            force_d.x -= STEP;
-        } else if (strcmp(direction, "up") == 0 || strcmp(direction, "down") == 0) {
-            force_d.x += 0; // Nessuna forza lungo x
-        } else if (strcmp(direction, "center") == 0 ) {
-            force_d.x = 0;
-        }
-
-        if (strcmp(direction, "up") == 0 || strcmp(direction, "upleft") == 0 || strcmp(direction, "upright") == 0) {
-            force_d.y -= STEP;
-        } else if (strcmp(direction, "down") == 0 || strcmp(direction, "downleft") == 0 || strcmp(direction, "downright") == 0) {
-            force_d.y += STEP;
-        } else if (strcmp(direction, "left") == 0 || strcmp(direction, "right") == 0 ) {
-            force_d.y += 0; // Nessuna forza lungo y
-        } else if (strcmp(direction, "center") == 0 ) {
-            force_d.y = 0;
-        }
-    } else {
-        force_d.x += 0;
-        force_d.y += 0;
-    }
-
-}
-
-void obstacle_force(Drone *drone, MyObstacles* obstacles) {
-    float deltaX, deltaY, distance;
-    force_o.x = 0;
-    force_o.y = 0;
-
-
-    for (int i = 0; i < status.obstacles.number; i++) {
-        deltaX =  obstacles->x[i] - drone->x;
-        deltaY =  obstacles->y[i] - drone->y;
-
-        distance = sqrt(pow(deltaX, 2) + pow(deltaY, 2));
-
-        if (distance > FORCE_THRESHOLD) {
-            continue; // Beyond influence radius
-        }
-        float repulsion =ETA * pow(((1/distance) - (1/FORCE_THRESHOLD)), 2)/distance;
-        if (repulsion > MAX_FORCE) repulsion = MAX_FORCE;
-        force_o.x -= repulsion * (deltaX / distance);
-        force_o.y -= repulsion * (deltaY / distance);
-
-
-    }
-
-}
-
-void target_force(Drone *drone, MyTargets* targets) {
-    
-    float deltaX, deltaY, distance;
-    force_t.x = 0;
-    force_t.y = 0;
-
-    for (int i = 0; i < status.targets.number; i++) {
-        if(status.hit[i] != 0){    
-            deltaX = targets->x[i] - drone->x;
-            deltaY = targets->y[i] - drone->y;
-            distance = sqrt(pow(deltaX, 2) + pow(deltaY, 2));
-
-
-            if (distance > FORCE_THRESHOLD) continue;
-
-            float attraction = ETA * pow(((1/distance) - (1/FORCE_THRESHOLD)), 2)/distance;
-            if (attraction > MAX_FORCE) attraction = MAX_FORCE;
-            force_t.x += attraction * (deltaX / distance);
-            force_t.y += attraction * (deltaY / distance);
-        }
-    }
-
-
-}
-
-Force total_force(Force drone, Force obstacle, Force target){
-    Force total;
-    total.x = drone.x + obstacle.x + target.x;
-    total.y = drone.y + obstacle.y + target.y;
-
-    LOGFORCES(drone, target, obstacle);
-
-    return total;
-}
-
-void sig_handler(int signo) {
-    if (signo == SIGUSR1) {
-        handler(DRONE);
-    }else if(signo == SIGTERM){
-        LOGPROCESSDIED();   
-        fclose(droneFile);
-        close(fds[recrd]);
-        close(fds[askwr]);
-        exit(EXIT_SUCCESS);
-    }
-}
-
-void newDrone (Drone* drone, MyTargets* targets, MyObstacles* obstacles, char* directions, char inst){
-    target_force(drone, targets);
-    obstacle_force(drone, obstacles);
-    if(inst == 'I'){
-        drone_force(directions);
-    }
-    force = total_force(force_d, force_o, force_t);
-
-    updatePosition(drone, force, DRONEMASS, &speed,&speedPrev);
-}
-
-void droneUpdate(Drone* drone, Speed* speed, Force* force, Message* msg) {
-
-    msg->drone.x = (int)round(drone->x);
-    msg->drone.y = (int)round(drone->y);
-    msg->drone.speedX = speed->x;
-    msg->drone.speedY = speed->y;
-    msg->drone.forceX = force->x;
-    msg->drone.forceY = force->y;
-}
-
-void mapInit(Drone* drone, Message* status){
-
-    
-    msgInit(status);
-
-    droneUpdate(drone, &speed, &force, status);
-    LOGDRONEINFO(status->drone);
-
-    writeMsg(fds[askwr], status, 
-            "[DRONE] Error sending drone info", droneFile);
-    
-    fprintf(droneFile, "Sent drone position\n");
-    fflush(droneFile);
-    
-    readMsg(fds[recrd], status,
-            "[DRONE] Error receiving map from BB", droneFile);
-    
-    for(int i = 0; i < MAX_TARGET; i++){
-        fprintf(droneFile,"targX,targY = %d, %d\n", status->targets.x[i], status->targets.y[i]);
-        fflush(droneFile);
-    }
-
-    for(int i = 0; i < MAX_OBSTACLES; i++){
-        fprintf(droneFile,"obstX,obstY = %d, %d\n", status->obstacles.x[i], status->obstacles.y[i]);
-        fflush(droneFile);
-    }
-}
+float K = 1.0;
+float droneMass = 1.0;
+float eta = 1.0;
+float rho_0 = 1.0;
+float step = 1.0;
+float psi = 1.0;
+float maxForce = 1.0;
 
 int main(int argc, char *argv[]) {
     
@@ -248,6 +49,13 @@ int main(int argc, char *argv[]) {
     if (droneFile == NULL) {
         perror("[DRONE] Error during the file opening");
         exit(EXIT_FAILURE);
+    }
+
+    //Open config file
+    settingsfile = fopen("appsettings.json", "r");
+    if (settingsfile == NULL) {
+        perror("Error opening the file");
+        return EXIT_FAILURE;
     }
 
     pid = writePid("log/passParam.txt", 'a', 1, 'd');
@@ -261,11 +69,17 @@ int main(int argc, char *argv[]) {
     sa.sa_handler = sig_handler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
-    sigaction(SIGUSR1, &sa, NULL);
-    sigaction(SIGTERM, &sa, NULL);
-    
-    char directions[MAX_DIRECTIONS] = {0};
 
+    if (sigaction(SIGUSR1, &sa, NULL) == -1) {
+        perror("Error while setting sigaction for SIGWINCH");
+        exit(EXIT_FAILURE);
+    }
+
+    if (sigaction(SIGTERM, &sa, NULL) == -1) {
+        perror("Error while setting sigaction for SIGWINCH");
+        exit(EXIT_FAILURE);
+    }
+    
     Drone drone = {0};
 
     drone.x = 10;
@@ -292,11 +106,8 @@ int main(int argc, char *argv[]) {
     }
     obstacles.number = 10;
 
-    //-----------------------------------
-    //  TODO: LEGGI NUMBERS DA CONFIGFILE
-    //------------------------------------
-
-   mapInit(&drone, &status);
+    char directions[MAX_DIRECTIONS] = {0};
+    mapInit(&drone, &status);
 
     while (1)
     {
@@ -323,7 +134,7 @@ int main(int argc, char *argv[]) {
         switch (status.msg) {
         
             case 'M':
-                newDrone(&drone, &status.targets, &status.obstacles, directions, status.msg);
+                newDrone(&drone, &status.targets, directions, status.msg);
                 droneUpdate(&drone, &speed, &force, &status);
 
                 // drone sends its position to BB
@@ -334,7 +145,7 @@ int main(int argc, char *argv[]) {
 
                 strcpy(directions, status.input);
 
-                newDrone(&drone, &status.targets, &status.obstacles, directions, status.msg);
+                newDrone(&drone, &status.targets, directions, status.msg);
                 droneUpdate(&drone, &speed, &force, &status);
                 LOGDRONEINFO(status.drone);
 
@@ -345,7 +156,7 @@ int main(int argc, char *argv[]) {
                 break;
             case 'A':
                 
-                newDrone(&drone, &status.targets, &status.obstacles, directions, status.msg);
+                newDrone(&drone, &status.targets, directions, status.msg);
                 droneUpdate(&drone, &speed, &force, &status);
 
                 //LOGPOSITION(drone);
@@ -360,6 +171,241 @@ int main(int argc, char *argv[]) {
                 exit(EXIT_FAILURE);
         }
 
-        usleep(1000000 / PERIOD);
+        usleep(PERIOD);
     }
+}
+
+/*********************************************************************************************************************/
+/***************************************FUNCTIONS TO COMPUTE FORCES***************************************************/
+/*********************************************************************************************************************/
+
+void drone_force(char* direction) {
+    
+    if (strcmp(direction, "") != 0) {
+
+        if (strcmp(direction, "right") == 0 || strcmp(direction, "upright") == 0 || strcmp(direction, "downright") == 0) {
+            force_d.x += step;
+        } else if (strcmp(direction, "left") == 0 || strcmp(direction, "upleft") == 0 || strcmp(direction, "downleft") == 0) {
+            force_d.x -= step;
+        } else if (strcmp(direction, "up") == 0 || strcmp(direction, "down") == 0) {
+            force_d.x += 0;
+        } else if (strcmp(direction, "center") == 0 ) {
+            force_d.x = 0;
+        }
+
+        if (strcmp(direction, "up") == 0 || strcmp(direction, "upleft") == 0 || strcmp(direction, "upright") == 0) {
+            force_d.y -= step;
+        } else if (strcmp(direction, "down") == 0 || strcmp(direction, "downleft") == 0 || strcmp(direction, "downright") == 0) {
+            force_d.y += step;
+        } else if (strcmp(direction, "left") == 0 || strcmp(direction, "right") == 0 ) {
+            force_d.y += 0;
+        } else if (strcmp(direction, "center") == 0 ) {
+            force_d.y = 0;
+        }
+    } else {
+        force_d.x += 0;
+        force_d.y += 0;
+    }
+
+}
+
+void obstacle_force(Drone* drone) {
+    
+    force_o.x = 0;
+    force_o.y = 0;
+
+    for (int i = 0; i < targets.number; i++) {
+        Force rep = compute_repulsive_force(drone, (float)status.obstacles.x[i], (float)status.obstacles.y[i]);
+        force_o.x += rep.x;
+        force_o.y += rep.y;
+    }
+
+}
+
+void target_force(Drone *drone, MyTargets* targets) {
+    
+    float deltaX, deltaY, distance;
+    force_t.x = 0;
+    force_t.y = 0;
+
+    for (int i = 0; i < targets->number; i++) {
+        if(status.hit != 0){    
+            deltaX = targets->x[i] - drone->x;
+            deltaY = targets->y[i] - drone->y;
+            distance = hypot(deltaX, deltaY);
+
+            if (distance > rho_0) continue;
+
+            float attraction = - psi * (distance - rho_0) / fmax(fabs(distance - rho_0), 1e-5); // Evita la divisione per zero
+            if (attraction > maxForce) attraction = maxForce;
+            force_t.x += attraction * (deltaX / distance);
+            force_t.y += attraction * (deltaY / distance);
+        }
+    }
+
+    // Limita le forze combinate
+    force_t.x = fmin(force_t.x, maxForce);
+    force_t.y = fmin(force_t.y, maxForce);
+}
+
+Force compute_repulsive_force(Drone *drone, float x, float y) {
+    Force force = {0.0, 0.0}; 
+    double rho = sqrt(pow(drone->x - x, 2) + pow(drone->y - y, 2));
+
+    if (rho > rho_0) return force;
+
+    double grad_x = (drone->x - x) / rho;
+    double grad_y = (drone->y - y) / rho;
+
+    double coeff = eta * (1.0 / rho - 1.0 / rho_0) * (1.0 / (rho * rho));
+
+    force.x = coeff * grad_x;
+    force.y = coeff * grad_y;
+
+    if(force.x > maxForce) force.x = maxForce;
+    if(force.y > maxForce) force.y = maxForce;
+
+    return force;
+}
+
+void boundary_force(Drone *drone) {
+    force_b.x = 0;
+    force_b.y = 0;
+
+    float left_boundary = 0;
+    float right_boundary = WINDOW_LENGTH;
+    float up_boundary = 0;
+    float down_boundary = WINDOW_WIDTH;
+
+    Force repulsion_left = compute_repulsive_force(drone, left_boundary, drone->y);
+    Force repulsion_right = compute_repulsive_force(drone, right_boundary, drone->y);
+    Force repulsion_up = compute_repulsive_force(drone, drone->x, up_boundary);
+    Force repulsion_down = compute_repulsive_force(drone, drone->x, down_boundary);
+
+    force_b.x = repulsion_left.x + repulsion_right.x;
+    force_b.y = repulsion_up.y + repulsion_down.y;
+}
+
+Force total_force(Force drone, Force obstacle, Force target, Force boundary){
+    
+    Force total;
+    total.x = drone.x + obstacle.x + target.x + boundary.x;
+    total.y = drone.y + obstacle.y + target.y + boundary.y;
+
+    LOGFORCES(drone, target, obstacle);
+
+    return total;
+}
+
+/*********************************************************************************************************************/
+/****************************************FUNCTIONS TO MOVE DRONE******************************************************/
+/*********************************************************************************************************************/
+
+void updatePosition(Drone *p, Force force, int mass, Speed *speed, Speed *speedPrev) {
+
+    float x_pos = (2*mass*p->previous_x[0] + periodms*K*p->previous_x[0] + force.x*periodms*periodms - mass * p->previous_x[1]) / (mass + periodms * K);
+    float y_pos = (2*mass*p->previous_y[0] + periodms*K*p->previous_y[0] + force.y*periodms*periodms - mass * p->previous_y[1]) / (mass + periodms * K);
+
+    p->x = x_pos;
+    p->y = y_pos;
+
+    p->previous_x[1] = p->previous_x[0]; 
+    p->previous_x[0] = p->x;  
+    p->previous_y[1] = p->previous_y[0];
+    p->previous_y[0] = p->y;
+
+    float speedX = (speedPrev->x + force.x/mass * (1.0f/periodms));
+    float speedY = (speedPrev->y + force.y/mass * (1.0f/periodms));
+
+    speedPrev->x = speed->x;
+    speedPrev->y = speed->y;
+
+    speed->x = speedX;
+    speed->y = speedY;
+
+
+}
+
+void newDrone (Drone* drone, MyTargets* targets, char* directions, char inst){
+    target_force(drone, targets);
+    obstacle_force(drone);
+    if(inst == 'I'){
+        drone_force(directions);
+    }
+    force = total_force(force_d, force_o, force_t, force_b);
+
+    updatePosition(drone, force, droneMass, &speed,&speedPrev);
+}
+
+void droneUpdate(Drone* drone, Speed* speed, Force* force, Message* msg) {
+
+    msg->drone.x = (int)round(drone->x);
+    msg->drone.y = (int)round(drone->y);
+    msg->drone.speedX = speed->x;
+    msg->drone.speedY = speed->y;
+    msg->drone.forceX = force->x;
+    msg->drone.forceY = force->y;
+}
+
+void mapInit(Drone* drone, Message* status){
+
+    msgInit(status);
+
+    droneUpdate(drone, &speed, &force, status);
+    LOGDRONEINFO(status->drone);
+
+    writeMsg(fds[askwr], status, 
+            "[DRONE] Error sending drone info", droneFile);
+    
+    readMsg(fds[recrd], status,
+            "[DRONE] Error receiving map from BB", droneFile);
+}
+
+/*********************************************************************************************************************/
+/***********************************************SIGNAL HANDLER********************************************************/
+/*********************************************************************************************************************/
+
+void sig_handler(int signo) {
+    if (signo == SIGUSR1) {
+        handler(DRONE);
+    }else if(signo == SIGTERM){
+        LOGPROCESSDIED();   
+        fclose(droneFile);
+        close(fds[recrd]);
+        close(fds[askwr]);
+        exit(EXIT_SUCCESS);
+    }
+}
+
+/*********************************************************************************************************************/
+/********************************************READING CONFIGURATION****************************************************/
+/*********************************************************************************************************************/
+
+void readConfig() {
+
+    int len = fread(jsonBuffer, 1, sizeof(jsonBuffer), settingsfile); 
+    if (len <= 0) {
+        perror("Error reading the file");
+        return;
+    }
+    fclose(settingsfile);
+
+    cJSON *json = cJSON_Parse(jsonBuffer);
+
+    if (json == NULL) {
+        perror("Error parsing the file");
+    }
+
+    targets.number= cJSON_GetObjectItemCaseSensitive(json, "TargetNumber")->valueint;
+    obstacles.number = cJSON_GetObjectItemCaseSensitive(json, "ObstacleNumber")->valueint;
+
+    K = cJSON_GetObjectItemCaseSensitive(json, "kDrone")->valuedouble;
+    droneMass = cJSON_GetObjectItemCaseSensitive(json, "massDrone")->valuedouble;
+    eta = cJSON_GetObjectItemCaseSensitive(json, "ETAObstacle")->valuedouble;
+    rho_0 = cJSON_GetObjectItemCaseSensitive(json, "RHO0obstacle")->valuedouble;
+    maxForce = cJSON_GetObjectItemCaseSensitive(json, "MAXForce")->valuedouble;
+    step = cJSON_GetObjectItemCaseSensitive(json, "Step")->valuedouble;
+    psi = cJSON_GetObjectItemCaseSensitive(json, "PSItarget")->valuedouble;
+    
+    cJSON_Delete(json);
 }

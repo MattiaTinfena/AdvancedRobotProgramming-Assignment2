@@ -13,19 +13,16 @@
 
 #define WINDOW_WIDTH 100
 #define WINDOW_LENGTH 100
+#define MAX_DIRECTIONS 80
 
 #define MAX_TARGET 20
 #define MAX_OBSTACLES 20
 #define NO_SPAWN_DIST 5
-#define ETA 5
-#define STEP 0.1
 
-#define FORCE_THRESHOLD 5 //[m]
-#define MIN_THRESHOLD 2 //[m]
-
-#define MAX_FORCE 0.5 //
-
-#define TARGET_DETECTION 1
+#define askwr 1
+#define askrd 0
+#define recwr 3
+#define recrd 2
 
 #define MAX_LINE_LENGTH 100
 #define MAX_FILE_SIZE 1024
