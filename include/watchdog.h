@@ -54,5 +54,18 @@ extern FILE *wdFile;
     fflush(wdFile);                                                             \
 }
 
+#define LOGANSWERPROCESS(pid){ \
+    if (!wdFile) {                                                              \
+        perror("Log file not initialized.\n");                                   \
+        raise(SIGTERM);                                                        \
+    }                                                                            \
+                                                                                 \
+    char date[50];                                                               \
+    getFormattedTime(date, sizeof(date));                                        \
+                                                                                 \
+    fprintf(wdFile, "%s Process %d answered correctly. ", date, pid);                  \
+    fflush(wdFile);                                                             \
+}
+
 
 #endif // WATCHDOG_H

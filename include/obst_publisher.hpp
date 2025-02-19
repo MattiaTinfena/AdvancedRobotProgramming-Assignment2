@@ -65,6 +65,16 @@ public:
         fflush((obj)->obstFile); \
     }
 
+    #define LOGIPOBSTCLE(obj, ip_vector, port) { \
+        if (!(obj)->obstFile) { \
+            perror("Log file not initialized.\n"); \
+        } \
+        char date[50]; \
+        getFormattedTime(date, sizeof(date)); \
+        fprintf((obj)->obstFile, "%s IP %d.%d.%d.%d PORT %d\n", date, ip_vector[0], ip_vector[1], ip_vector[2], ip_vector[3], port); \
+        fflush((obj)->obstFile); \
+    }
+
     #if USE_DEBUG
     #define LOGPUBLISHNEWOBSTACLES(obj, obstacles) {\
         if (!(obj)->obstFile) { \

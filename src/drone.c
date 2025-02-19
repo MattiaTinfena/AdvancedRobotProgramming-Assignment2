@@ -109,6 +109,8 @@ int main(int argc, char *argv[]) {
     char directions[MAX_DIRECTIONS] = {0};
     mapInit(&drone, &status);
 
+    LOGNEWMAP(status);
+
     while (1)
     {
         status.msg = 'R';
@@ -121,19 +123,11 @@ int main(int argc, char *argv[]) {
         readMsg(fds[recrd], &status,
             "[DRONE] Error receiving map from BB", droneFile);
         
-        for(int i = 0; i < MAX_TARGET; i++){
-            fprintf(droneFile,"targX,targY = %d, %d\n", status.targets.x[i], status.targets.y[i]);
-            fflush(droneFile);
-        }
-    
-        for(int i = 0; i < MAX_OBSTACLES; i++){
-            fprintf(droneFile,"obstX,obstY = %d, %d\n", status.obstacles.x[i], status.obstacles.y[i]);
-            fflush(droneFile);
-        }
 
         switch (status.msg) {
         
             case 'M':
+                LOGNEWMAP(status);
                 newDrone(&drone, &status.targets, directions, status.msg);
                 droneUpdate(&drone, &speed, &force, &status);
 
@@ -228,6 +222,7 @@ void target_force(Drone *drone, MyTargets* targets) {
     force_t.y = 0;
 
     for (int i = 0; i < targets->number; i++) {
+
         if(status.hit[i] > 0){    
             deltaX = targets->x[i] - drone->x;
             deltaY = targets->y[i] - drone->y;
@@ -300,7 +295,11 @@ Force total_force(Force drone, Force obstacle, Force target, Force boundary){
 /****************************************FUNCTIONS TO MOVE DRONE******************************************************/
 /*********************************************************************************************************************/
 
-void updatePosition(Drone *p, Force force, int mass, Speed *speed, Speed *speedPrev) {
+void updatePosition(Drone *p, Force force, float mass, Speed *speed, Speed *speedPrev) {
+    mass = 1.0;
+
+    fprintf(droneFile, "K: %f, mass: %f\n", K, mass);
+    fflush(droneFile);
 
     float x_pos = (2*mass*p->previous_x[0] + periodms*K*p->previous_x[0] + force.x*periodms*periodms - mass * p->previous_x[1]) / (mass + periodms * K);
     float y_pos = (2*mass*p->previous_y[0] + periodms*K*p->previous_y[0] + force.y*periodms*periodms - mass * p->previous_y[1]) / (mass + periodms * K);
@@ -328,6 +327,7 @@ void updatePosition(Drone *p, Force force, int mass, Speed *speed, Speed *speedP
 void newDrone (Drone* drone, MyTargets* targets, char* directions, char inst){
     target_force(drone, targets);
     obstacle_force(drone);
+    boundary_force(drone);
     if(inst == 'I'){
         drone_force(directions);
     }
