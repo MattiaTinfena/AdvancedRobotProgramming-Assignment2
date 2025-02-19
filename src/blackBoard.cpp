@@ -46,7 +46,6 @@ int mode = PLAY;
 WINDOW * win;
 WINDOW * map;
 
-// FILE *file = NULL;
 FILE *logFile = NULL;
 FILE *settingsfile = NULL;
 

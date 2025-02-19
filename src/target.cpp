@@ -88,12 +88,12 @@ void createTargets() {
 
     for (int i = 0; i < targets.number; i++){
         do {
-            x_pos = rand() % (WINDOW_LENGTH - 1);
-            y_pos = rand() % (WINDOW_WIDTH - 1);
+            x_pos = rand() % (WINDOW_LENGTH - 10);
+            y_pos = rand() % (WINDOW_WIDTH - 10);
         } while (canSpawnPrev(x_pos, y_pos) == 0);
 
-        targets.x[i] = x_pos;
-        targets.y[i] = y_pos;
+        targets.x[i] = x_pos + 5;
+        targets.y[i] = y_pos + 5;
         }
 }
 

@@ -20,9 +20,6 @@ char jsonBuffer[MAX_FILE_SIZE];
 
 void handleLogFailure() {
     printf("Logging failed. Cleaning up resources...\n");
-
-    // Perform necessary cleanup here (close files, free memory, etc.)
-    //ASK MATTIA
    
     exit(EXIT_FAILURE);
 }
@@ -33,7 +30,7 @@ int writeSecure(const char* filename, char* data, unsigned long numeroRiga, char
         return -1;
     }
 
-    FILE* file = fopen(filename, "r+");  // Apertura per lettura e scrittura
+    FILE* file = fopen(filename, "r+");
     if (file == NULL) {
         perror("Errore nell'apertura del file");
         return -1;
@@ -46,10 +43,10 @@ int writeSecure(const char* filename, char* data, unsigned long numeroRiga, char
         return -1;
     }
 
-    // Blocca il file per accesso esclusivo
+
     while (flock(fd, LOCK_EX) == -1) {
         if (errno == EWOULDBLOCK) {
-            usleep(100000);  // Pausa di 100 ms
+            usleep(100000); 
         } else {
             perror("Errore nel blocco del file");
             fclose(file);
@@ -57,10 +54,10 @@ int writeSecure(const char* filename, char* data, unsigned long numeroRiga, char
         }
     }
 
-    // Legge tutto il file in memoria
-    char** righe = NULL;  // Array di righe
-    unsigned long numRighe = 0;  // Numero di righe
-    char buffer[1024];    // Buffer per leggere ogni riga
+  
+    char** righe = NULL;  
+    unsigned long numRighe = 0;  
+    char buffer[1024];   
 
     while (fgets(buffer, sizeof(buffer), file)) {
         righe = (char **)realloc(righe, numeroRiga * sizeof(char *));
@@ -69,19 +66,17 @@ int writeSecure(const char* filename, char* data, unsigned long numeroRiga, char
             fclose(file);
             return -1;
         }
-        righe[numRighe] = strdup(buffer);  // Duplica la riga letta
+        righe[numRighe] = strdup(buffer);  
         numRighe++;
     }
 
-    // Modifica o aggiunge righe
     if (numeroRiga > numRighe){
 
-        // Aggiungi righe vuote fino alla riga richiesta
         righe = (char **)realloc(righe, numeroRiga * sizeof(char *));
         for (unsigned long i = numRighe; i < numeroRiga - 1; i++) {
-            righe[i] = strdup("\n");  // Righe vuote
+            righe[i] = strdup("\n"); 
         }
-        righe[numeroRiga - 1] = strdup(data);  // Nuova riga
+        righe[numeroRiga - 1] = strdup(data); 
         numRighe = numeroRiga;
     } else {
         // Se la riga esiste, modifica in base alla modalità
@@ -176,8 +171,6 @@ int readSecure(const char* filename, char* data, unsigned long numeroRiga) {
         }
         rigaCorrente++;
     }
-
-    // Controlla se abbiamo raggiunto la riga desiderata
     if (rigaCorrente < numeroRiga) {
         fprintf(stderr, "Errore: Riga %ld non trovata nel file.\n", numeroRiga);
         flock(fd, LOCK_UN);

@@ -90,12 +90,12 @@ void createObstacles() {
 
     for (int i = 0; i < obstacles.number; i++){
         do {
-            x_pos = rand() % (WINDOW_LENGTH - 1);
-            y_pos = rand() % (WINDOW_WIDTH - 1);
+            x_pos = rand() % (WINDOW_LENGTH - 10);
+            y_pos = rand() % (WINDOW_WIDTH - 10);
         } while (canSpawnPrev(x_pos, y_pos) == 0);
 
-        obstacles.x[i] = x_pos;
-        obstacles.y[i] = y_pos;
+        obstacles.x[i] = x_pos + 5;
+        obstacles.y[i] = y_pos + 5;
     }
 }
 

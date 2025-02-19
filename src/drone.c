@@ -161,7 +161,6 @@ int main(int argc, char *argv[]) {
 
                 //LOGPOSITION(drone);
                 
-                // drone sends its position to BB
                 writeMsg(fds[askwr], &status, 
                         "[DRONE-A] Error sending drone position", droneFile);
                 usleep(10000);
