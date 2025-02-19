@@ -28,6 +28,8 @@
 # Non ignorare i file .json
 !*.sh
 
+!*.png
+
 # Non ignorare il Makefile
 !Makefile
 
@@ -42,3 +44,5 @@
 
 #Non ignorare la cartella .vscode
 !**/src/
+
+!**/docs/
