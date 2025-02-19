@@ -48,10 +48,10 @@ directories:
 	mkdir -p $(BIN_DIR) $(BUILD_DIR) $(LOG_DIR) $(GENERATED_DIR)
 	rm -f $(LOG_DIR)/*.txt
 	rm -f $(LOG_DIR)/*.log
-	fastddsgen $(WORKSPACE_FOLDER)/src/Obstacles.idl -d $(GENERATED_DIR)
-	fastddsgen $(WORKSPACE_FOLDER)/src/Targets.idl -d $(GENERATED_DIR)
-	mv $(GENERATED_DIR)/src/* $(GENERATED_DIR)
-	rm -rf $(GENERATED_DIR)/src
+	fastddsgen $(WORKSPACE_FOLDER)/idl/Obstacles.idl -d $(GENERATED_DIR)
+	fastddsgen $(WORKSPACE_FOLDER)/idl/Targets.idl -d $(GENERATED_DIR)
+	mv $(GENERATED_DIR)/idl/* $(GENERATED_DIR)
+	rm -rf $(GENERATED_DIR)/idl
 
 
 # Compile static library
