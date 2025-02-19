@@ -73,7 +73,20 @@ public:
         fprintf(logFile, "%s %d is not a valid value for SubscriptionMatchedStatus current count change with target\n", date, current_count_change); \
     } \
     fflush(logFile); \
-}
+    }
+
+    #define LOGIPSUBSCRIBERTA(obj, ip_client, port_client, ip_server, port_server) {  \
+        if (!logFile) { \
+            perror("Log file not initialized.\n"); \
+            raise(SIGTERM); \
+        } \
+        char date[50]; \
+        getFormattedTime(date, sizeof(date)); \
+        fprintf(logFile, "%s IP client %d.%d.%d,%d PORT client %d IP server %d.%d.%d,%d PORT server %d\n", date, \
+            ip_client[0], ip_client[1], ip_client[2], ip_client[3], port_client, \
+            ip_server[0], ip_server[1], ip_server[2], ip_server[3], port_server); \
+        fflush(logFile); \
+    }
 };
 
 #endif // TARG_SUBSCRIBER_HPP

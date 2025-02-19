@@ -134,28 +134,19 @@ bool TargetSubscriber::init()
 
     // Set SERVER's listening locator for PDP
     Locator_t locator;
-
     IPLocator::setIPv4(locator, (int)ip_vector_server[0], (int)ip_vector_server[1], (int)ip_vector_server[2], (int)ip_vector_server[3]);
     locator.port = port_server_;
-
     server_qos.wire_protocol().builtin.metatrafficUnicastLocatorList.push_back(locator);
 
     /* Add a remote serve to which this server will connect */
     // Set remote SERVER's listening locator for PDP
     Locator_t remote_locator;
-
     IPLocator::setIPv4(remote_locator, (int)ip_vector_client[0], (int)ip_vector_client[1], (int)ip_vector_client[2], (int)ip_vector_client[3]);
     remote_locator.port = port_client_;
 
-    if (logFile) {
-        fprintf(logFile, "targ ip server %d %d %d %d | port %d\n", ip_vector_server[0], ip_vector_server[1], ip_vector_server[2], ip_vector_server[3], port_server_);
-        fflush(logFile);
-    }
 
-    if (logFile) {
-        fprintf(logFile, "targ ip client %d %d %d %d | port %d\n", ip_vector_client[0], ip_vector_client[1], ip_vector_client[2], ip_vector_client[3], port_client_);
-        fflush(logFile);
-    }
+    LOGIPSUBSCRIBERTA(this, ip_vector_client, port_client_, ip_vector_server, port_server_);
+    
 
     // Add remote SERVER to SERVER's list of SERVERs
     server_qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(remote_locator);

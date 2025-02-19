@@ -66,7 +66,7 @@ int targetsHit = 0;
 
 int main(int argc, char *argv[]) {
 
-    logFile = fopen("log/logfile.log", "w");
+    logFile = fopen("log/logfile.log", "a");
     if (logFile == NULL) {
         perror("Errore nell'aprire il file di log");
         return 1;

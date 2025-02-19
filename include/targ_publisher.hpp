@@ -64,6 +64,15 @@ public:
         } \
         fflush((obj)->targFile); \
     }
+    #define LOGIPTARGET(obj, ip_vector, port) { \
+        if (!(obj)->targFile) { \
+            perror("Log file not initialized.\n"); \
+        } \
+        char date[50]; \
+        getFormattedTime(date, sizeof(date)); \
+        fprintf((obj)->targFile, "%s IP %d.%d.%d.%d PORT %d\n", date, ip_vector[0], ip_vector[1], ip_vector[2], ip_vector[3], port); \
+        fflush((obj)->targFile); \
+    }
 
     #if USE_DEBUG
     #define LOGPUBLISHNEWTARGET(obj, targets) { \
