@@ -222,7 +222,7 @@ void target_force(Drone *drone, MyTargets* targets) {
     force_t.y = 0;
 
     for (int i = 0; i < targets->number; i++) {
-        if(status.hit != 0){    
+        if(status.hit[i] != 0){    
             deltaX = targets->x[i] - drone->x;
             deltaY = targets->y[i] - drone->y;
             distance = hypot(deltaX, deltaY);
@@ -294,9 +294,10 @@ Force total_force(Force drone, Force obstacle, Force target, Force boundary){
 /****************************************FUNCTIONS TO MOVE DRONE******************************************************/
 /*********************************************************************************************************************/
 
-void updatePosition(Drone *p, Force force, int mass, Speed *speed, Speed *speedPrev) {
+void updatePosition(Drone *p, Force force, float mass, Speed *speed, Speed *speedPrev) {
+    mass = 1.0;
 
-    fprintf(droneFile, "K: %d, mass: %d\n", K, mass);
+    fprintf(droneFile, "K: %f, mass: %f\n", K, mass);
     fflush(droneFile);
 
     float x_pos = (2*mass*p->previous_x[0] + periodms*K*p->previous_x[0] + force.x*periodms*periodms - mass * p->previous_x[1]) / (mass + periodms * K);

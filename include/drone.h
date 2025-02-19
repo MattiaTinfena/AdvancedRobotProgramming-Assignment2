@@ -23,7 +23,7 @@ typedef struct
 } Drone;
 
 //Functions definition
-void updatePosition(Drone *p, Force force, int mass, Speed *speed, Speed *speedPrev);
+void updatePosition(Drone *p, Force force, float mass, Speed *speed, Speed *speedPrev);
 void drone_force(char* direction);
 void obstacle_force(Drone* drone);
 void target_force(Drone *drone, MyTargets* targets);
