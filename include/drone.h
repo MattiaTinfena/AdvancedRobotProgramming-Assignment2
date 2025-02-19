@@ -52,13 +52,11 @@ void readConfig();
     fprintf(droneFile, "%s New map created.\n", date);                             \
     fprintf(droneFile, "\tTarget positions: ");                                      \
     for (int t = 0; t < MAX_TARGET; t++) {                                       \
-        if (status.targets.x[t] == 0 && status.targets.y[t] == 0) break;         \
-        fprintf(droneFile, "(%d, %d) [val: %d] ",                                  \
-                status.targets.x[t], status.targets.y[t], status.targets.value[t]); \
+        fprintf(droneFile, "(%d, %d) ",                                  \
+                status.targets.x[t], status.targets.y[t]); \
     }                                                                            \
     fprintf(droneFile, "\n\tObstacle positions: ");                                  \
     for (int t = 0; t < MAX_OBSTACLES; t++) {                                    \
-        if (status.obstacles.x[t] == 0 && status.obstacles.y[t] == 0) break;     \
         fprintf(droneFile, "(%d, %d) ",                                            \
                 status.obstacles.x[t], status.obstacles.y[t]);                   \
     }                                                                            \

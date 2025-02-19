@@ -44,14 +44,8 @@ void mapInit(FILE *file);
     char date[50];                                                               \
     getFormattedTime(date, sizeof(date));                                        \
                                                                                  \
-    switch ((status).difficulty) { \
-    case 1: strcpy(difficultyStr, "Easy"); break; \
-    case 2: strcpy(difficultyStr, "Hard"); break; \
-    default: strcpy(difficultyStr, "Unknown"); \
-    }                                                                             \
-                                                                                 \
-    fprintf(logFile, "%s Player Name: %s, Difficulty: %s, Level: %d, Score: %d\n",          \
-            date, (status).name, difficultyStr, (status).level, status.score);                 \
+    fprintf(logFile, "%s Player Name: %s, Score: %d\n",          \
+            date, (status).name, status.score);                 \
     fflush(logFile);                                                             \
 }
 
@@ -153,20 +147,6 @@ void mapInit(FILE *file);
     fflush(logFile);                                                             \
 }
 
-// Macro per loggare il completamento di un livello
-#define LOGENDLEVEL(status, inputStatus) {                                       \
-    if (!logFile) {                                                              \
-        perror("Log file not initialized.\n");                                   \
-        raise(SIGTERM);                                                                  \
-    }                                                                            \
-                                                                                 \
-    char date[50];                                                               \
-    getFormattedTime(date, sizeof(date));                                        \
-                                                                                 \
-    fprintf(logFile, "%s Level %d completed. Level %d started. Actual score: %d\n", \
-            date, status.level, status.level + 1, inputStatus.score);            \
-    fflush(logFile);                                                             \
-}
 
 #define LOGTARGETHIT(status) { \
     if (!logFile) {                                                              \
@@ -179,9 +159,7 @@ void mapInit(FILE *file);
                                                                                  \
     fprintf(logFile, "%s New target hit. Targets hit:\n", date);            \
     for (int t = 0; t < MAX_TARGET; t++) {                                       \
-        if (status.targets.value[t] == 0 && t < numTarget+1) {        \
         fprintf(logFile, "(%d, %d)", status.targets.x[t], status.targets.y[t]); \
-        } \
     } \
     fprintf(logFile, "\n");\
     fflush(logFile);  \
@@ -276,5 +254,16 @@ void mapInit(FILE *file);
 #else
 #define LOGINPUTMESSAGE(inputMsg) {}
 #endif
+
+#define LOGERRORINIT(process) {    \
+    if (!logFile) { \
+        perror("Log file not initialized.\n"); \
+        raise(SIGTERM); \
+    } \
+    char date[50]; \
+    getFormattedTime(date, sizeof(date)); \
+    fprintf(logFile, "%s Error in initialization %s.\n", date, process); \
+    fflush(logFile); \
+}
 
 #endif // LOG_H
