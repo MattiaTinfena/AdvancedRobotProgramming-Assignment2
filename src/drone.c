@@ -8,7 +8,7 @@
 #include "drone.h"
 #include "cjson/cJSON.h"
 
-#define PERIOD 10000
+#define PERIOD 100000
 
 Force force_d = {0, 0};
 Force force_o = {0, 0};
@@ -106,6 +106,7 @@ int main(int argc, char *argv[]) {
     }
     obstacles.number = 10;
 
+    readConfig();
     char directions[MAX_DIRECTIONS] = {0};
     mapInit(&drone, &status);
 
@@ -296,7 +297,6 @@ Force total_force(Force drone, Force obstacle, Force target, Force boundary){
 /*********************************************************************************************************************/
 
 void updatePosition(Drone *p, Force force, float mass, Speed *speed, Speed *speedPrev) {
-    mass = 1.0;
 
     fprintf(droneFile, "K: %f, mass: %f\n", K, mass);
     fflush(droneFile);
