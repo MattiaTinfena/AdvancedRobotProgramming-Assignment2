@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    pid = writePid("log/passParam.txt", 'a', 1, 'd');
+    pid = writePid("log/passParam.txt", 'a','d');
 
     // Closing unused pipes heads to avoid deadlock
     close(fds[askrd]);
@@ -366,7 +366,7 @@ void mapInit(Drone* drone, Message* status){
 
 void sig_handler(int signo) {
     if (signo == SIGUSR1) {
-        handler(DRONE);
+        handler('d');
     }else if(signo == SIGTERM){
         LOGPROCESSDIED();   
         fclose(droneFile);

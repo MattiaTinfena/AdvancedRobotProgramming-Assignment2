@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
     char dataWrite [80] ;
     snprintf(dataWrite, sizeof(dataWrite), "b%d,", pid);
 
-    if(writeSecure("log/passParam.txt", dataWrite,1,'a') == -1){
+    if(writeSecure("log/passParam.txt", dataWrite,'a') == -1){
         perror("Error in writing in passParan.txt");
         exit(1);
     }
@@ -198,7 +198,7 @@ int main(int argc, char *argv[]) {
     usleep(500000);
 
     char datareaded[200];
-    if (readSecure("log/passParam.txt", datareaded,1) == -1) {
+    if (readSecure("log/passParam.txt", datareaded, sizeof(datareaded)) == -1) {
         perror("[BB] Error reading the passParam file");
         exit(1);
     }
@@ -571,7 +571,7 @@ void resizeHandler(){
 
 void sig_handler(int signo) {
     if (signo == SIGUSR1) {
-        handler(BLACKBOARD);
+        handler('b');
     } else if (signo == SIGTERM) {
         close(fds[DRONE][recwr]);
         close(fds[DRONE][askrd]);

@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
     char dataWrite [80] ;
     snprintf(dataWrite, sizeof(dataWrite), "i%d,", pid);
 
-    if(writeSecure("log/passParam.txt", dataWrite,1,'a') == -1){
+    if(writeSecure("log/passParam.txt", dataWrite,'a') == -1){
         perror("[INPUT]Error in writing in passParam.txt");
         exit(1);
     }
@@ -531,7 +531,7 @@ void drawInfo() {
 
 void sig_handler(int signo) {
     if (signo == SIGUSR1) {
-        handler(INPUT);
+        handler('i');
     }else if(signo == SIGTERM){
         LOGPROCESSDIED(); 
         fclose(inputFile);

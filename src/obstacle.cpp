@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    pid = writePid("log/passParam.txt", 'a', 1, 'o');
+    pid = writePid("log/passParam.txt", 'a','o');
 
     //Defining signals
     struct sigaction sa;
@@ -105,7 +105,7 @@ void createObstacles() {
 
 void sig_handler(int signo) {
     if (signo == SIGUSR1){
-        handler(OBSTACLE);
+        handler('o');
     } else if(signo == SIGTERM){
         LOGPROCESSDIED();
         fclose(obstFile);

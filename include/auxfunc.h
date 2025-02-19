@@ -99,11 +99,11 @@ extern char jsonBuffer[MAX_FILE_SIZE];
 void handleLogFailure();
 
 // Funzioni di lettura/scrittura sicura su file
-int writeSecure(const char* filename, char* data, unsigned long numeroRiga, char mode);
-int readSecure(const char* filename, char* data, unsigned long numeroRiga);
+int writeSecure(const char* filename, const char* data, char mode);
+int readSecure(const char* filename, char* data, size_t datasize);
 
 // Gestione segnali
-void handler(int id);
+void handler(char id);
 
 // Funzioni di comunicazione con pipe
 void writeMsg(int pipeFds, Message* msg, const char* error, FILE* file);
@@ -115,7 +115,7 @@ void readInputMsg(int pipeFds, inputMessage* msgOut, const char* error, FILE* fi
 void fdsRead(int argc, char* argv[], int* fds);
 
 // Funzione per scrivere il PID su file
-int writePid(const char* file, char mode, int row, char id);
+int writePid(const char* file, char mode, char id);
 
 // Funzioni per stampare messaggi su file
 void printInputMessageToFile(FILE *file, inputMessage* msg);

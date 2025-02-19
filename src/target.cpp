@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    pid = writePid("log/passParam.txt", 'a', 1, 't');
+    pid = writePid("log/passParam.txt", 'a','t');
 
     //Defining signals
     struct sigaction sa;
@@ -103,7 +103,7 @@ void createTargets() {
 
 void sig_handler(int signo) {
     if (signo == SIGUSR1) {
-        handler(TARGET);
+        handler('t');
     } else if(signo == SIGTERM){
         LOGPROCESSDIED(); 
         fclose(targFile);
