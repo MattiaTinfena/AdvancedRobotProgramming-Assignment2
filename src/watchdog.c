@@ -1,7 +1,7 @@
 #include <ncurses.h>
 #include <stdio.h>
 #include <string.h>
-#include <fcntl.h>  
+#include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -16,15 +16,13 @@
 #define PROCESSTOCONTROL 5
 
 int pids[PROCESSTOCONTROL] = {0, 0, 0, 0, 0};
-
-struct timeval start, end;
-long elapsed_ms;
+long times[PROCESSTOCONTROL] = {0, 0, 0, 0, 0};
 
 FILE *wdFile;
 
 void sig_handler(int signo) {
     if(signo == SIGTERM){
-        LOGWDDIED(); 
+        LOGWDDIED();
         fclose(wdFile);
         exit(EXIT_SUCCESS);
     }
@@ -44,6 +42,10 @@ void closeAll(int id){
     exit(EXIT_SUCCESS);
 }
 
+long convertToSeconds(int hh, int mm, int ss) {
+    return hh * 3600 + mm * 60 + ss;
+}
+
 int main() {
 
     wdFile = fopen("log/watchdog.log", "w");
@@ -52,32 +54,26 @@ int main() {
         exit(1);
     }
 
-    fprintf(wdFile, "%d\n", __LINE__);
-    fflush(wdFile);
-
     int pid = (int)getpid();
-    char dataWrite [80] ;
+    char dataWrite[80];
     snprintf(dataWrite, sizeof(dataWrite), "w%d,", pid);
 
-    if(writeSecure("log/passParam.txt", dataWrite,1,'a') == -1){
+    if(writeSecure("log/passParam.txt", dataWrite, 'a') == -1){
         perror("[WATCHDOG] Error in writing in passParam.txt");
-            exit(1);
-        }
+        exit(1);
+    }
 
-        sleep(1);
-    
-    fprintf(wdFile, "%d\n", __LINE__);
-    fflush(wdFile);
+    sleep(1);
 
     char datareaded[200];
-    if (readSecure("log/passParam.txt", datareaded,1) == -1) {
-            perror("[WD1] Error reading the passParam wdFile");
-            exit(1);
-        }
-    
-        fprintf(wdFile, "%d\n", __LINE__);
+    if (readSecure("log/passParam.txt", datareaded, sizeof(datareaded)) == -1) {
+        perror("[WD1] Error reading the passParam wdFile");
+        exit(1);
+    }
+
+    fprintf(wdFile, "%s\n", datareaded);
     fflush(wdFile);
-    
+
     // Parse the data and assign roles
     char *token = strtok(datareaded, ",");
     while (token != NULL) {
@@ -94,20 +90,21 @@ int main() {
             pids[TARGET] = number;
         } else if (type == 'b') {
             pids[BLACKBOARD] = number;
-        }else{
-            ;
         }
 
         token = strtok(NULL, ",");
     }
 
-    fprintf(wdFile, "%d\n", __LINE__);
-    fflush(wdFile);
+    // Write the PID values to the output wdFile
+    for (int i = 0; i < PROCESSTOCONTROL; i++) {
+        fprintf(wdFile, "pid[%d] = %d\n", i, pids[i]);
+        fflush(wdFile);
+    }
 
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
     sa.sa_handler = sig_handler;
-    sa.sa_flags = SA_RESTART; 
+    sa.sa_flags = SA_RESTART;
 
     if (sigaction(SIGUSR1, &sa, NULL) == -1) {
         perror("sigaction");
@@ -119,92 +116,123 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    fprintf(wdFile, "%d\n", __LINE__);
-    fflush(wdFile);
+    char reset[2] = "!\0";
+    if(writeSecure("log/passParam.txt", reset, 'w') == -1){
+        perror("[WATCHDOG] Error in writing in passParam.txt");
+        exit(1);
+    }
 
-    // for (int i = 0; i < PROCESSTOCONTROL; i++) {
-    //     if (pids[i] != 0){
-    //         if (kill(pids[i], SIGUSR1) == -1) {
-    //             LOG_PROCESS_NOT_RESPONDING(pids[i]);
-    //             closeAll(i);
-    //         }
-    //         usleep(10000);
-    //     }
-    // }
-
-    fprintf(wdFile, "%d\n", __LINE__);
-    fflush(wdFile);
+    for (int i = 0; i < PROCESSTOCONTROL; i++) {
+        if (pids[i] != 0){
+            if (kill(pids[i], SIGUSR1) == -1) {
+                LOG_PROCESS_NOT_RESPONDING(pids[i]);
+                closeAll(i);
+            }
+            usleep(10000);
+        }
+    }
 
     int interval = 0;
 
     while (1) {
         sleep(1);
 
-        // interval++;
+        interval++;
 
-        // if(interval >= 4){
-        //     interval = 0;
-        //     for (int i = 0; i < PROCESSTOCONTROL; i++) {
-        //         if (pids[i] != 0){
-        //             if (kill(pids[i], SIGUSR1) == -1) {
-        //                 LOG_PROCESS_NOT_RESPONDING(pids[i]);
-        //                 closeAll(i);
-        //             }
-        //             usleep(10000);
-        //         }
-        //     }
-        // }
-        
-        // fprintf(wdFile, "%d\n", __LINE__);
-        // fflush(wdFile);
+        if(interval >= 4){
+            interval = 0;
 
-        // usleep(10000);
-        // time_t rawtime;
-        // struct tm *timeinfo;
-        // time(&rawtime);
-        // timeinfo = localtime(&rawtime);
+            char reset[2] = "!\0";
+            if(writeSecure("log/passParam.txt", reset, 'w') == -1){
+                perror("[WATCHDOG] Error in writing in passParam.txt");
+                exit(1);
+            }
 
-        // char timeReaded[50];
-        
-        // for(int i = 0; i < PROCESSTOCONTROL; i++){
-            
-        //     memset(timeReaded, 0, sizeof(timeReaded));
-        //     fprintf(wdFile, "%d pids[%d] = %d\t", __LINE__, i, pids[i]);
-        //     fflush(wdFile);
-            
-        //     if (pids[i] != 0) {
-        //         printf("[DEBUG] Tentativo di leggere riga: %d\n", i + 3);
-                
-        //         if(readSecure("log/passParam.txt", timeReaded, i + 3) == -1){
-        //             perror("[WD2] Error reading the passParam wdFile");
-        //             fclose(wdFile);
-        //             exit(1);
-        //         }
+            for (int i = 0; i < PROCESSTOCONTROL; i++) {
+                if (pids[i] != 0){
+                    if (kill(pids[i], SIGUSR1) == -1) {
+                        LOG_PROCESS_NOT_RESPONDING(pids[i]);
+                        closeAll(i);
+                    }
+                    usleep(10000);
+                }
+            }
+        }
 
-        //         fprintf(wdFile, "timeReaded pre: %d\t", timeReaded);
-        //         fflush(wdFile);
+        usleep(10000);
+        time_t rawtime;
+        struct tm *timeinfo;
+        time(&rawtime);
+        timeinfo = localtime(&rawtime);
 
-        //         int hours, minutes, seconds;
-        //         sscanf(timeReaded, "%d:%d:%d", &hours, &minutes, &seconds);
-        //         long timeReadedInSeconds = hours * 3600 + minutes * 60 + seconds;
-                
-        //         long currentTimeInSeconds = timeinfo->tm_hour * 3600 + timeinfo->tm_min * 60 + timeinfo->tm_sec;
-        //         long timeDifference = currentTimeInSeconds - timeReadedInSeconds;
+        // Inizializza la stringa di input correttamente prima di usare strtok
+        char timeReaded[200];  // Inserisci la tua stringa di tempo
 
-        //         fprintf(wdFile, "timeReaded: %d timeReaded [sec] %d\n", timeReaded, timeReadedInSeconds);
-        //         fflush(wdFile);
+        if (readSecure("log/passParam.txt", timeReaded, sizeof(timeReaded)) == -1) {
+            perror("[WD1] Error reading the passParam wdFile");
+            exit(1);
+        }
 
-        //         if (timeDifference > 5) {
-        //             closeAll(i);
-        //         }
-        //     }
-        // }
-        
-        // fprintf(wdFile, "%d\n", __LINE__);
-        // fflush(wdFile);
-    }                 
-    
-    //Close the wdFile
+        memset(times, 0, sizeof(times));  // Reset dell'array times
+
+        char *token = strtok(timeReaded, ","); // Modifica per il corretto parsing
+
+        while (token != NULL) {
+            if (token[0] == '!') {
+                token++; // Ignora il carattere '!'
+            }
+
+            char lettera = token[0]; // Prima lettera
+            int hh, mm, ss;
+
+            // Usa atoi per estrarre le ore, i minuti e i secondi
+            sscanf(token + 1, "%d:%d:%d", &hh, &mm, &ss);
+
+            // Calcola il tempo in secondi
+            long pidtime = convertToSeconds(hh, mm, ss);
+
+            // Log prima della gestione
+            fprintf(wdFile, "Parsing token: %s | pidtime: %ld\n", token, pidtime);
+            fflush(wdFile);
+
+            // Associa il valore di secondi all'array times in base alla lettera
+            if (lettera == 'i') {
+                times[INPUT] = pidtime;
+            } else if (lettera == 'd') {
+                times[DRONE] = pidtime;
+            } else if (lettera == 'o') {
+                times[OBSTACLE] = pidtime;
+            } else if (lettera == 't') {
+                times[TARGET] = pidtime;
+            } else if (lettera == 'b') {
+                times[BLACKBOARD] = pidtime;
+            }
+
+            token = strtok(NULL, ",");
+        }
+
+        // Log dei tempi
+        for(int i = 0; i < PROCESSTOCONTROL; i++){
+            fprintf(wdFile, "times[%d]: %ld\n", i, times[i]);
+            fflush(wdFile);
+        }
+
+        for(int i = 0; i < PROCESSTOCONTROL; i++){
+            if (pids[i] != 0) {
+                long currentTimeInSeconds = convertToSeconds(timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+                long timeDifference = currentTimeInSeconds - times[i];
+
+                fprintf(wdFile, "current: %ld times[%d] %ld difference: %ld\n", currentTimeInSeconds, i, times[i], timeDifference);
+                fflush(wdFile);
+
+                if (timeDifference > 5) {
+                    closeAll(i);
+                }
+            }
+        }
+    }
+
+    // Close the wdFile
     fclose(wdFile);
 
     return 0;

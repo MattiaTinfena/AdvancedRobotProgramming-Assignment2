@@ -8,15 +8,11 @@
 #include "auxfunc.h"
 #include <time.h>
 
-int levelTime = 3;//30;
-int numTarget = 4;
-int numObstacle = 9;
-int incTime = 10;
-int incTarget = 1;
-int incObstacle = 1;
-
 const char *moves[] = {"upleft", "up", "upright", "left", "center", "right", "downleft", "down", "downright"};
 char jsonBuffer[MAX_FILE_SIZE];
+
+int numTarget = 4;
+int numObstacle = 9;
 
 void handleLogFailure() {
     printf("Logging failed. Cleaning up resources...\n");
@@ -24,117 +20,44 @@ void handleLogFailure() {
     exit(EXIT_FAILURE);
 }
 
-int writeSecure(const char* filename, char* data, unsigned long numeroRiga, char mode) {
-    if (mode != 'o' && mode != 'a') {
-        fprintf(stderr, "Modalità non valida. Usa 'o' per overwrite o 'a' per append.\n");
-        return -1;
+int writeSecure(const char* filename, const char* data, char mode) {
+    int fd;
+    
+    if (mode == 'w') {
+        // Apri il file solo per troncarlo, poi chiudilo immediatamente
+        fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT, 0666);
+        if (fd == -1) {
+            perror("Errore nell'apertura per troncamento");
+            return -1;
+        }
+        close(fd);
+
+        // Ora riapri il file normalmente
+        fd = open(filename, O_WRONLY | O_CREAT, 0666);
+    } else { 
+        fd = open(filename, O_WRONLY | O_APPEND | O_CREAT, 0666);
     }
 
-    FILE* file = fopen(filename, "r+");
-    if (file == NULL) {
+    if (fd == -1) {
         perror("Errore nell'apertura del file");
         return -1;
     }
 
-    int fd = fileno(file);
-    if (fd == -1) {
-        perror("Errore nel recupero del file descriptor");
-        fclose(file);
+    // Scrive i dati nel file
+    ssize_t len = write(fd, data, strlen(data));
+    if (len < (ssize_t)strlen(data)) {
+        perror("Errore nella scrittura del file");
+        close(fd);
         return -1;
     }
 
+    fsync(fd);
+    close(fd);
 
-    while (flock(fd, LOCK_EX) == -1) {
-        if (errno == EWOULDBLOCK) {
-            usleep(100000); 
-        } else {
-            perror("Errore nel blocco del file");
-            fclose(file);
-            return -1;
-        }
-    }
-
-  
-    char** righe = NULL;  
-    unsigned long numRighe = 0;  
-    char buffer[1024];   
-
-    while (fgets(buffer, sizeof(buffer), file)) {
-        righe = (char **)realloc(righe, numeroRiga * sizeof(char *));
-        if (!righe) {
-            perror("Errore nella realloc");
-            fclose(file);
-            return -1;
-        }
-        righe[numRighe] = strdup(buffer);  
-        numRighe++;
-    }
-
-    if (numeroRiga > numRighe){
-
-        righe = (char **)realloc(righe, numeroRiga * sizeof(char *));
-        for (unsigned long i = numRighe; i < numeroRiga - 1; i++) {
-            righe[i] = strdup("\n"); 
-        }
-        righe[numeroRiga - 1] = strdup(data); 
-        numRighe = numeroRiga;
-    } else {
-        // Se la riga esiste, modifica in base alla modalità
-        if (mode == 'o') {
-            // Sovrascrivi il contenuto della riga
-            free(righe[numeroRiga - 1]);
-            righe[numeroRiga - 1] = strdup(data);
-        } else if (mode == 'a') {
-            // Rimuovi il newline alla fine della riga esistente
-            unsigned long len = strlen(righe[numeroRiga - 1]);
-            if (len > 0 && righe[numeroRiga - 1][len - 1] == '\n') {
-                righe[numeroRiga - 1][len - 1] = '\0';
-            }
-            // Concatena il nuovo testo
-            char* nuovoContenuto = (char*)malloc(len + strlen(data) + 2);
-            if (!nuovoContenuto) {
-                perror("Errore nella malloc");
-                fclose(file);
-                return -1;
-            }
-            sprintf(nuovoContenuto, "%s%s\n", righe[numeroRiga - 1], data); // Nessuno spazio extra
-            free(righe[numeroRiga - 1]);
-            righe[numeroRiga - 1] = nuovoContenuto;
-        }
-    }
-
-    // Riscrive il contenuto nel file
-    rewind(file);
-    for (unsigned long i = 0; i < numRighe; i++) {
-        fprintf(file, "%s", righe[i]);
-        if (righe[i][strlen(righe[i]) - 1] != '\n') {
-            fprintf(file, "\n");  // Aggiungi newline se mancante
-        }
-        free(righe[i]);  // Libera la memoria per ogni riga
-    }
-    free(righe);  // Libera l'array di righe
-
-    // Trunca il file a lunghezza corrente
-    if (ftruncate(fd, ftell(file)) == -1) {
-        perror("Errore nel troncamento del file");
-        fclose(file);
-        return -1;
-    }
-
-    fflush(file);
-
-    // Sblocca il file
-    if (flock(fd, LOCK_UN) == -1) {
-        perror("Errore nello sblocco del file");
-        fclose(file);
-        return -1;
-    }
-
-    fclose(file);
     return 0;
 }
 
-int readSecure(const char* filename, char* data, unsigned long numeroRiga) {
+int readSecure(const char* filename, char* data, size_t dataSize) {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
         perror("Errore nell'apertura del file");
@@ -159,24 +82,15 @@ int readSecure(const char* filename, char* data, unsigned long numeroRiga) {
         }
     }
 
-    // Leggi fino alla riga richiesta
-    unsigned long rigaCorrente = 1;
-    char buffer[1024];  // Buffer temporaneo per leggere le righe
-    while (fgets(buffer, sizeof(buffer), file)) {
-        if (rigaCorrente == numeroRiga) {
-            // Copia la riga nel buffer di output
-            strncpy(data, buffer, 1024);
-            data[1023] = '\0';  // Assicurati che sia terminata correttamente
-            break;
-        }
-        rigaCorrente++;
-    }
-    if (rigaCorrente < numeroRiga) {
-        fprintf(stderr, "Errore: Riga %ld non trovata nel file.\n", numeroRiga);
+    // Legge i dati dal file
+    size_t len = fread(data, sizeof(char), dataSize - 1, file);
+    if (len == 0 && ferror(file)) {
+        perror("Errore nella lettura del file");
         flock(fd, LOCK_UN);
         fclose(file);
         return -1;
     }
+    data[len] = '\0';  // Assicura che la stringa sia null-terminata
 
     // Sblocca il file
     if (flock(fd, LOCK_UN) == -1) {
@@ -188,6 +102,7 @@ int readSecure(const char* filename, char* data, unsigned long numeroRiga) {
     fclose(file);
     return 0;
 }
+
 
 void writeMsg(int pipeFds, Message* msg, const char* error, FILE* file){
     if (write(pipeFds, msg, sizeof(Message)) == -1) {
@@ -246,12 +161,12 @@ void fdsRead (int argc, char* argv[], int* fds){
     }
 }
 
-int writePid(const char* file, char mode, int row, char id) {
+int writePid(const char* file, char mode, char id) {
     int pid = (int)getpid();
     char dataWrite[80];
     snprintf(dataWrite, sizeof(dataWrite), "%c%d,", id, pid);
 
-    if (writeSecure(file, dataWrite, row, mode) == -1) {
+    if (writeSecure(file, dataWrite,mode) == -1) {
         perror("Error in writing in passParam.txt");
         exit(1);
     }
@@ -312,16 +227,19 @@ void inputMsgInit(inputMessage* status){
     status->droneInfo.forceY = 0;
 }
 
-void handler(int id) {
-
+void handler(char id) {
     char log_entry[256];
     time_t rawtime;
     struct tm *timeinfo;
     time(&rawtime);
     timeinfo = localtime(&rawtime);
-    strftime(log_entry, sizeof(log_entry), "%H:%M:%S", timeinfo);
-    writeSecure("log/passParam.txt", log_entry, id + 3, 'o');
+
+    snprintf(log_entry, sizeof(log_entry), "%c%02d:%02d:%02d,", id, 
+             timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+
+    writeSecure("log/passParam.txt", log_entry, 'a');
 }
+
 
 // Funzione helper per ottenere il timestamp formattato
 void getFormattedTime(char *buffer, unsigned long size) {

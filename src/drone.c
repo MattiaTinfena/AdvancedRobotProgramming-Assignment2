@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    pid = writePid("log/passParam.txt", 'a', 1, 'd');
+    pid = writePid("log/passParam.txt", 'a','d');
 
     // Closing unused pipes heads to avoid deadlock
     close(fds[askrd]);
@@ -222,7 +222,8 @@ void target_force(Drone *drone, MyTargets* targets) {
     force_t.y = 0;
 
     for (int i = 0; i < targets->number; i++) {
-        if(status.hit[i] != 0){    
+
+        if(status.hit[i] > 0){    
             deltaX = targets->x[i] - drone->x;
             deltaY = targets->y[i] - drone->y;
             distance = hypot(deltaX, deltaY);
@@ -365,7 +366,7 @@ void mapInit(Drone* drone, Message* status){
 
 void sig_handler(int signo) {
     if (signo == SIGUSR1) {
-        handler(DRONE);
+        handler('d');
     }else if(signo == SIGTERM){
         LOGPROCESSDIED();   
         fclose(droneFile);
@@ -405,5 +406,15 @@ void readConfig() {
     step = cJSON_GetObjectItemCaseSensitive(json, "Step")->valuedouble;
     psi = cJSON_GetObjectItemCaseSensitive(json, "PSItarget")->valuedouble;
     
+
+
+    fprintf(droneFile, "K: %f\n", K);
+    fprintf(droneFile, "Drone Mass: %f\n", droneMass);
+    fprintf(droneFile, "ETA: %f\n", eta);
+    fprintf(droneFile, "RHO0: %f\n", rho_0);
+    fprintf(droneFile, "Max Force: %f\n", maxForce);
+    fprintf(droneFile, "Step: %f\n", step);
+    fprintf(droneFile, "PSI: %f\n", psi);
+
     cJSON_Delete(json);
 }
