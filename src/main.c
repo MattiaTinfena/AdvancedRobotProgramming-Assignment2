@@ -27,7 +27,6 @@
 
 int main() {
 
-    // Creazione delle pipe
     int pipes[PROCESSNUM][PIPEXPROCESS][2];
 
     for (int i = 0; i < PROCESSNUM; i++) {
@@ -42,13 +41,11 @@ int main() {
     char fd_str[PROCESSNUM][50];        
     char test[15];                      
     
-    // Inizializzare fd_str a 0 per concatenare i file descriptor
     for (int i = 0; i < PROCESSNUM; i++) {    
         sprintf(fd_str[i], "%d", 0);
         strcat(fd_str[i], ",");
     }
 
-    // Riempimento di fd_str con i valori nelle pipe (separati da virgole)
     for (int i = 0; i < PROCESSNUM; i++) {
         for (int j = 0; j < PIPEXPROCESS; j++) {
             for (int k = 0; k < 2; k++) {

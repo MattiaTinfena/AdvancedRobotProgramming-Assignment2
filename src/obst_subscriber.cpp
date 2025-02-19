@@ -13,7 +13,7 @@
 #include <fastdds/dds/subscriber/Subscriber.hpp>
 #include <fastdds/dds/topic/TypeSupport.hpp>
 #include "obst_subscriber.hpp"  // Include the header file
-#include "auxfunc2.hpp"
+#include "auxfunc.h"
 
 using namespace eprosima::fastdds::dds;
 using namespace eprosima::fastdds::rtps;
@@ -139,8 +139,10 @@ bool ObstacleSubscriber::init()
 
     // Set SERVER's listening locator for PDP
     Locator_t locator;
+
     IPLocator::setIPv4(locator, (int)ip_vector_server[0], (int)ip_vector_server[1], (int)ip_vector_server[2], (int)ip_vector_server[3]);
     locator.port = port_server_;
+
     server_qos.wire_protocol().builtin.metatrafficUnicastLocatorList.push_back(locator);
 
     if (logFile) {
@@ -151,6 +153,7 @@ bool ObstacleSubscriber::init()
     /* Add a remote serve to which this server will connect */
     // Set remote SERVER's listening locator for PDP
     Locator_t remote_locator;
+
     IPLocator::setIPv4(remote_locator, (int)ip_vector_client[0], (int)ip_vector_client[1], (int)ip_vector_client[2], (int)ip_vector_client[3]);
     remote_locator.port = port_client_;
 

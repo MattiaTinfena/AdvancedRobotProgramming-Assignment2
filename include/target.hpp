@@ -5,14 +5,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "auxfunc2.hpp"
+#include "auxfunc.h"
 
-// Macro di configurazione
+//Macro's configuration
 #define MAX_LINE_LENGTH 100
 #define USE_DEBUG 1
 
-// Variabili globali
+//Global variables
 extern FILE *targFile;
+
+//Functions definition
+int canSpawnPrev(int x_pos, int y_pos);
+void createTargets();
+void sig_handler(int signo);
+void readConfig();
+
+/*********************************************************************************************************************/
+/********************************************FUNCTIONS TO LOG*********************************************************/
+/*********************************************************************************************************************/
 
 #define LOGNEWMAP(target) {                                                      \
     if (!targFile) {                                                              \

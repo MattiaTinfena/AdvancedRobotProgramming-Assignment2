@@ -15,7 +15,7 @@
 
 #define PROCESSTOCONTROL 5
 
-int pids[PROCESSTOCONTROL] = {0};  // Initialize PIDs to 0
+int pids[PROCESSTOCONTROL] = {0, 0, 0, 0, 0};
 
 struct timeval start, end;
 long elapsed_ms;
@@ -24,7 +24,7 @@ FILE *wdFile;
 
 void sig_handler(int signo) {
     if(signo == SIGTERM){
-        LOGWDDIED();   
+        LOGWDDIED(); 
         fclose(wdFile);
         exit(EXIT_SUCCESS);
     }
@@ -45,7 +45,7 @@ void closeAll(int id){
 }
 
 int main() {
-    // Open the output wdFile for writing
+
     wdFile = fopen("log/watchdog.log", "w");
     if (wdFile == NULL) {
         perror("Error opening the wdFile");
@@ -104,52 +104,54 @@ int main() {
     fprintf(wdFile, "%d\n", __LINE__);
     fflush(wdFile);
 
-    // // Write the PID values to the output wdFile
-    for (int i = 0; i < PROCESSTOCONTROL; i++) {
-        // if (pids[i] == 0) continue;
-        fprintf(wdFile, "pid[%d] = %d\n", i, pids[i]);
-        fflush(wdFile);
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = sig_handler;
+    sa.sa_flags = SA_RESTART; 
+
+    if (sigaction(SIGUSR1, &sa, NULL) == -1) {
+        perror("sigaction");
+        exit(EXIT_FAILURE);
     }
 
-    // struct sigaction sa;
-    // memset(&sa, 0, sizeof(sa));
-    // sa.sa_handler = sig_handler;
-    // sa.sa_flags = SA_RESTART;  // Riavvia read/write interrotte
-    // if (sigaction(SIGUSR1, &sa, NULL) == -1) {
-    //     perror("sigaction");
-    //     exit(EXIT_FAILURE);
-    // }
-    // fprintf(wdFile, "%d\n", __LINE__);
-    // fflush(wdFile);
+    if (sigaction(SIGTERM, &sa, NULL) == -1) {
+        perror("Error while setting sigaction for SIGTERM");
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(wdFile, "%d\n", __LINE__);
+    fflush(wdFile);
 
     // for (int i = 0; i < PROCESSTOCONTROL; i++) {
-    //     if (pids[i] == 0) continue;
-    //     if (kill(pids[i], SIGUSR1) == -1) {
-    //         LOG_PROCESS_NOT_RESPONDING(pids[i]);
-    //         closeAll(i);
+    //     if (pids[i] != 0){
+    //         if (kill(pids[i], SIGUSR1) == -1) {
+    //             LOG_PROCESS_NOT_RESPONDING(pids[i]);
+    //             closeAll(i);
+    //         }
+    //         usleep(10000);
     //     }
-    //     usleep(10000);
     // }
 
-    // fprintf(wdFile, "%d\n", __LINE__);
-    // fflush(wdFile);
+    fprintf(wdFile, "%d\n", __LINE__);
+    fflush(wdFile);
 
     int interval = 0;
 
     while (1) {
+        sleep(1);
 
-        // sleep(1);
         // interval++;
 
         // if(interval >= 4){
         //     interval = 0;
         //     for (int i = 0; i < PROCESSTOCONTROL; i++) {
-        //         if (pids[i] == 0) continue;
-        //         if (kill(pids[i], SIGUSR1) == -1) {
-        //             LOG_PROCESS_NOT_RESPONDING(pids[i]);
-        //             closeAll(i);
+        //         if (pids[i] != 0){
+        //             if (kill(pids[i], SIGUSR1) == -1) {
+        //                 LOG_PROCESS_NOT_RESPONDING(pids[i]);
+        //                 closeAll(i);
+        //             }
+        //             usleep(10000);
         //         }
-        //         usleep(10000);
         //     }
         // }
         
@@ -165,31 +167,36 @@ int main() {
         // char timeReaded[50];
         
         // for(int i = 0; i < PROCESSTOCONTROL; i++){
+            
         //     memset(timeReaded, 0, sizeof(timeReaded));
         //     fprintf(wdFile, "%d pids[%d] = %d\t", __LINE__, i, pids[i]);
         //     fflush(wdFile);
-        //     if (pids[i] == 0) continue;
-        //     printf("[DEBUG] Tentativo di leggere riga: %d\n", i + 3);
-        //     if(readSecure("log/passParam.txt", timeReaded, i + 3) == -1){
-        //         perror("[WD2] Error reading the passParam wdFile");
-        //         fclose(wdFile);
-        //         exit(1);
-        //     }
-        //     fprintf(wdFile, "timeReaded pre: %d\t", timeReaded);
-        //     fflush(wdFile);
-
-        //     int hours, minutes, seconds;
-        //     sscanf(timeReaded, "%d:%d:%d", &hours, &minutes, &seconds);
-        //     long timeReadedInSeconds = hours * 3600 + minutes * 60 + seconds;
             
-        //     long currentTimeInSeconds = timeinfo->tm_hour * 3600 + timeinfo->tm_min * 60 + timeinfo->tm_sec;
-        //     long timeDifference = currentTimeInSeconds - timeReadedInSeconds;
+        //     if (pids[i] != 0) {
+        //         printf("[DEBUG] Tentativo di leggere riga: %d\n", i + 3);
+                
+        //         if(readSecure("log/passParam.txt", timeReaded, i + 3) == -1){
+        //             perror("[WD2] Error reading the passParam wdFile");
+        //             fclose(wdFile);
+        //             exit(1);
+        //         }
 
-        //     fprintf(wdFile, "timeReaded: %d timeReaded [sec] %d\n", timeReaded, timeReadedInSeconds);
-        //     fflush(wdFile);
+        //         fprintf(wdFile, "timeReaded pre: %d\t", timeReaded);
+        //         fflush(wdFile);
 
-        //     if (timeDifference > 5) {
-        //         closeAll(i);
+        //         int hours, minutes, seconds;
+        //         sscanf(timeReaded, "%d:%d:%d", &hours, &minutes, &seconds);
+        //         long timeReadedInSeconds = hours * 3600 + minutes * 60 + seconds;
+                
+        //         long currentTimeInSeconds = timeinfo->tm_hour * 3600 + timeinfo->tm_min * 60 + timeinfo->tm_sec;
+        //         long timeDifference = currentTimeInSeconds - timeReadedInSeconds;
+
+        //         fprintf(wdFile, "timeReaded: %d timeReaded [sec] %d\n", timeReaded, timeReadedInSeconds);
+        //         fflush(wdFile);
+
+        //         if (timeDifference > 5) {
+        //             closeAll(i);
+        //         }
         //     }
         // }
         

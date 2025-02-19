@@ -12,7 +12,7 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
-#include "auxfunc2.hpp"
+#include "auxfunc.h"
 
 using namespace eprosima::fastdds::dds;
 #define USE_DEBUG 1

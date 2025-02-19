@@ -18,8 +18,9 @@
 #include <fastdds/dds/topic/TypeSupport.hpp>
 #include <fastdds/rtps/transport/TCPv4TransportDescriptor.hpp>
 
-#include "targ_publisher.hpp"
-#include "auxfunc2.hpp"
+#include "targ_publisher.hpp"  // Include the header file
+#include "auxfunc.h"
+
 
 using namespace eprosima::fastdds::dds;
 using namespace eprosima::fastdds::rtps;
@@ -121,6 +122,7 @@ bool TargetPublisher::init()
 
     // Set SERVER's listening locator for PDP
     Locator_t locator;
+
     IPLocator::setIPv4(locator, (int)ip_vector[0], (int)ip_vector[1], (int)ip_vector[2], (int)ip_vector[3]);
     locator.port = port_;
 

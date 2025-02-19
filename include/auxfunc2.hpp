@@ -63,7 +63,6 @@ typedef struct {
 typedef struct {
     int x[MAX_TARGET];
     int y[MAX_TARGET];
-    int hit[MAX_TARGET];
     int number;
 } MyTargets;
 
@@ -76,6 +75,7 @@ typedef struct {
 typedef struct {
     char msg;
     char input[10];
+    int hit[MAX_TARGET];
     Drone_bb drone;
     MyTargets targets;
     MyObstacles obstacles;

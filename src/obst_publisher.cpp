@@ -19,7 +19,7 @@
 #include <fastdds/rtps/transport/TCPv4TransportDescriptor.hpp>
 
 #include "obst_publisher.hpp"  // Include the header file
-#include "auxfunc2.hpp"
+#include "auxfunc.h"
 
 
 using namespace eprosima::fastdds::dds;
@@ -127,6 +127,7 @@ bool ObstaclePublisher::init()
 
     // Set SERVER's listening locator for PDP
     Locator_t locator;
+
     IPLocator::setIPv4(locator, (int)ip_vector[0], (int)ip_vector[1], (int)ip_vector[2], (int)ip_vector[3]);
     locator.port = port_;
 
@@ -134,6 +135,7 @@ bool ObstaclePublisher::init()
         fprintf(obstFile, "ip %d %d %d %d | port %d\n", ip_vector[0], ip_vector[1], ip_vector[2], ip_vector[3], port_);
         fflush(obstFile);
     }
+
 
     // Add remote SERVER to CLIENT's list of SERVERs
     client_qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(locator);

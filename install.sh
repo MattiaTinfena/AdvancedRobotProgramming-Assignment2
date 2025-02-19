@@ -20,7 +20,7 @@ fi
 cd "$install_folder"
 mkdir -p fastdds
 
-curl -o fastdds.tgz 'https://www.eprosima.com/component/ars/item/eProsima_Fast-DDS-v3.1.0-Linux.tgz?format=tgz&category_id=7&release_id=169&Itemid=0'
+curl -o fastdds.tgz 'https://www.eprosima.com/component/ars/item/eProsima_Fast-DDS-v3.1.1-Linux.tgz?format=tgz&category_id=7&release_id=159&Itemid=0'
 
 tar -xvzf ./fastdds.tgz -C fastdds
 cd fastdds/fastdds

@@ -5,18 +5,36 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "auxfunc.h"
+// #include "auxfunc.h"
 
-// Macro di configurazione
+//Macro's configuration
 #define MAX_LINE_LENGTH 100
 #define USE_DEBUG 1
 
-// Variabili globali
+//Global variables
 extern FILE *logFile;
 char difficultyStr[10];
 
+//Functions definition
+void drawDrone(WINDOW * win);
+void drawObstacle(WINDOW * win);
+void drawTarget(WINDOW * win);
+void drawMenu(WINDOW* win);
+void readConfig();
+void resizeHandler();
+void sig_handler(int signo);
+int randomSelect(int n);
+void detectCollision(Message* status, Drone_bb * prev);
+void createNewMap(FILE *file);
+void closeAll();
+void quit();
+void storePreviousPosition(Drone_bb *drone);
+void mapInit(FILE *file);
 
-// Macro per il logging della configurazione
+/*********************************************************************************************************************/
+/********************************************FUNCTIONS TO LOG*********************************************************/
+/*********************************************************************************************************************/
+
 #define LOGCONFIG(status) {                                                      \
     if (!logFile) {                                                              \
         perror("Log file not initialized.\n");                                   \
@@ -108,13 +126,11 @@ char difficultyStr[10];
     fprintf(logFile, "%s New map created.\n", date);                             \
     fprintf(logFile, "\tTarget positions: ");                                      \
     for (int t = 0; t < MAX_TARGET; t++) {                                       \
-        if (status.targets.x[t] == 0 && status.targets.y[t] == 0) break;         \
-        fprintf(logFile, "(%d, %d) [val: %d] ",                                  \
-                status.targets.x[t], status.targets.y[t], status.targets.value[t]); \
+        fprintf(logFile, "(%d, %d) ",                                  \
+                status.targets.x[t], status.targets.y[t]); \
     }                                                                            \
     fprintf(logFile, "\n\tObstacle positions: ");                                  \
     for (int t = 0; t < MAX_OBSTACLES; t++) {                                    \
-        if (status.obstacles.x[t] == 0 && status.obstacles.y[t] == 0) break;     \
         fprintf(logFile, "(%d, %d) ",                                            \
                 status.obstacles.x[t], status.obstacles.y[t]);                   \
     }                                                                            \

@@ -20,9 +20,6 @@ char jsonBuffer[MAX_FILE_SIZE];
 
 void handleLogFailure() {
     printf("Logging failed. Cleaning up resources...\n");
-
-    // Perform necessary cleanup here (close files, free memory, etc.)
-    //ASK MATTIA
    
     exit(EXIT_FAILURE);
 }
@@ -33,7 +30,7 @@ int writeSecure(const char* filename, char* data, unsigned long numeroRiga, char
         return -1;
     }
 
-    FILE* file = fopen(filename, "r+");  // Apertura per lettura e scrittura
+    FILE* file = fopen(filename, "r+");
     if (file == NULL) {
         perror("Errore nell'apertura del file");
         return -1;
@@ -46,10 +43,10 @@ int writeSecure(const char* filename, char* data, unsigned long numeroRiga, char
         return -1;
     }
 
-    // Blocca il file per accesso esclusivo
+
     while (flock(fd, LOCK_EX) == -1) {
         if (errno == EWOULDBLOCK) {
-            usleep(100000);  // Pausa di 100 ms
+            usleep(100000); 
         } else {
             perror("Errore nel blocco del file");
             fclose(file);
@@ -57,31 +54,29 @@ int writeSecure(const char* filename, char* data, unsigned long numeroRiga, char
         }
     }
 
-    // Legge tutto il file in memoria
-    char** righe = NULL;  // Array di righe
-    unsigned long numRighe = 0;  // Numero di righe
-    char buffer[1024];    // Buffer per leggere ogni riga
+  
+    char** righe = NULL;  
+    unsigned long numRighe = 0;  
+    char buffer[1024];   
 
     while (fgets(buffer, sizeof(buffer), file)) {
-        righe = realloc(righe, (numRighe + 1) * sizeof(char*));
+        righe = (char **)realloc(righe, numeroRiga * sizeof(char *));
         if (!righe) {
             perror("Errore nella realloc");
             fclose(file);
             return -1;
         }
-        righe[numRighe] = strdup(buffer);  // Duplica la riga letta
+        righe[numRighe] = strdup(buffer);  
         numRighe++;
     }
 
-    // Modifica o aggiunge righe
     if (numeroRiga > numRighe){
 
-        // Aggiungi righe vuote fino alla riga richiesta
-        righe = realloc(righe, numeroRiga * sizeof(char*));
+        righe = (char **)realloc(righe, numeroRiga * sizeof(char *));
         for (unsigned long i = numRighe; i < numeroRiga - 1; i++) {
-            righe[i] = strdup("\n");  // Righe vuote
+            righe[i] = strdup("\n"); 
         }
-        righe[numeroRiga - 1] = strdup(data);  // Nuova riga
+        righe[numeroRiga - 1] = strdup(data); 
         numRighe = numeroRiga;
     } else {
         // Se la riga esiste, modifica in base alla modalità
@@ -96,7 +91,7 @@ int writeSecure(const char* filename, char* data, unsigned long numeroRiga, char
                 righe[numeroRiga - 1][len - 1] = '\0';
             }
             // Concatena il nuovo testo
-            char* nuovoContenuto = malloc(len + strlen(data) + 2);
+            char* nuovoContenuto = (char*)malloc(len + strlen(data) + 2);
             if (!nuovoContenuto) {
                 perror("Errore nella malloc");
                 fclose(file);
@@ -176,8 +171,6 @@ int readSecure(const char* filename, char* data, unsigned long numeroRiga) {
         }
         rigaCorrente++;
     }
-
-    // Controlla se abbiamo raggiunto la riga desiderata
     if (rigaCorrente < numeroRiga) {
         fprintf(stderr, "Errore: Riga %ld non trovata nel file.\n", numeroRiga);
         flock(fd, LOCK_UN);
@@ -205,7 +198,6 @@ void writeMsg(int pipeFds, Message* msg, const char* error, FILE* file){
     }  
 }
 
-
 void readMsg(int pipeFds, Message* msgOut, const char* error, FILE* file){   
     if (read(pipeFds, msgOut, sizeof(Message)) == -1){
         fprintf(file, "Error: %s\n", error);
@@ -223,6 +215,7 @@ void writeInputMsg(int pipeFds, inputMessage* msg, const char* error, FILE* file
         exit(EXIT_FAILURE);
     }  
 }
+
 void readInputMsg(int pipeFds, inputMessage* msgOut, const char* error, FILE* file){
     if (read(pipeFds, msgOut, sizeof(inputMessage)) == -1){
         fprintf(file, "Error: %s\n", error);
@@ -253,11 +246,10 @@ void fdsRead (int argc, char* argv[], int* fds){
     }
 }
 
-int writePid(char* file, char mode, int row, char id){
-
+int writePid(const char* file, char mode, int row, char id) {
     int pid = (int)getpid();
     char dataWrite[80];
-    snprintf(dataWrite, sizeof(dataWrite), "%c%d,",id, pid);
+    snprintf(dataWrite, sizeof(dataWrite), "%c%d,", id, pid);
 
     if (writeSecure(file, dataWrite, row, mode) == -1) {
         perror("Error in writing in passParam.txt");
@@ -266,6 +258,7 @@ int writePid(char* file, char mode, int row, char id){
 
     return pid;
 }
+
 
 void printInputMessageToFile(FILE *file, inputMessage* msg) {
     fprintf(file, "\n");
@@ -297,7 +290,7 @@ void msgInit(Message* status){
     for(int i = 0; i < MAX_TARGET; i++){
         status->targets.x[i] = 0;
         status->targets.y[i] = 0; 
-        status->targets.hit[i] = 0;
+        status->hit[i] = 0;
     }
     status->targets.number = 0;
     for(int i = 0; i < MAX_OBSTACLES; i++){
