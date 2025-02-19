@@ -223,7 +223,11 @@ ObstacleSubscriber::SubListener::~SubListener()
 
 void ObstacleSubscriber::SubListener::on_subscription_matched(DataReader* reader, const SubscriptionMatchedStatus& info)
 {
-    // LOGPUBLISHERMATCHING(info.current_count_change, parent_);
+    if (parent_) // Controllo di sicurezza per evitare accessi a puntatori nulli
+    {
+        FILE* logFile = parent_->logFile;  // Accesso al logFile della classe principale
+        LOGOBSTSUBSCRIPTION(info.current_count_change);
+    }
 }
 
 void convertObstaclesToMyObstacles(const Obstacles& obstacles, MyObstacles& myObstacles)

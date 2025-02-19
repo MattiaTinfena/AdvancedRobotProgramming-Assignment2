@@ -1,5 +1,5 @@
 /**
- * @file obst_publisher.cpp
+ * @file targ_publisher.cpp
  *
  */
 
@@ -18,15 +18,12 @@
 #include <fastdds/dds/topic/TypeSupport.hpp>
 #include <fastdds/rtps/transport/TCPv4TransportDescriptor.hpp>
 
-#include "targ_publisher.hpp"  // Include the header file
+#include "targ_publisher.hpp"
 #include "auxfunc2.hpp"
 
 using namespace eprosima::fastdds::dds;
 using namespace eprosima::fastdds::rtps;
 
-// Remove class definition from here
-
-// Constructor implementations
 TargetPublisher::TargetPublisher()
     : participant_(nullptr)
     , publisher_(nullptr)
@@ -35,6 +32,7 @@ TargetPublisher::TargetPublisher()
     , type_(new TargetsPubSubType())
     , targFile(nullptr)
     , port_(0)
+    , listener_(this)  // Inizializza listener_ passando this
 {
     std::fill(std::begin(ip_vector), std::end(ip_vector), 0);
     targFile = fopen("log/target.log", "a");  // Apri il file di log in modalità append
@@ -43,7 +41,6 @@ TargetPublisher::TargetPublisher()
     }
 }
 
-// Distruttore di TargetPublisher
 TargetPublisher::~TargetPublisher()
 {
     if (writer_ != nullptr)
@@ -65,7 +62,6 @@ TargetPublisher::~TargetPublisher()
     DomainParticipantFactory::get_instance()->delete_participant(participant_);
 }
 
-// Parsing della configurazione da file JSON
 bool TargetPublisher::parseFromJSON()
 {
     FILE* settingsFile = fopen("appsettings.json", "r");
@@ -100,7 +96,6 @@ bool TargetPublisher::parseFromJSON()
     for (int i = 0; i < 4; i++) {
         ip_vector[i] = cJSON_GetArrayItem(ip_array, i)->valueint;
     }
-
 
     cJSON* port_item = cJSON_GetObjectItem(config, "portServerTarget");
     if (cJSON_IsNumber(port_item)) {
@@ -154,7 +149,7 @@ bool TargetPublisher::init()
     // Create the publications Topic
     topic_ = participant_->create_topic("topic2", type_.get_type_name(), TOPIC_QOS_DEFAULT);
 
-    if (topic_ == nullptr)
+    if (topic_== nullptr)
     {
         return false;
     }
@@ -177,14 +172,15 @@ bool TargetPublisher::init()
     return true;
 }
 
-bool TargetPublisher::publish(MyTargets myTargets){
-    
-    if (listener_.matched_ > 0){
-
+bool TargetPublisher::publish(MyTargets myTargets)
+{
+    if (listener_.matched_ > 0)
+    {
         my_message_.targets_x().clear();
         my_message_.targets_y().clear();
 
-        for (int i = 0; i < myTargets.number; i++){
+        for (int i = 0; i < myTargets.number; i++)
+        {
             my_message_.targets_x().push_back(myTargets.x[i]);
             my_message_.targets_y().push_back(myTargets.y[i]);
         }
@@ -192,15 +188,14 @@ bool TargetPublisher::publish(MyTargets myTargets){
         my_message_.targets_number(myTargets.number);
 
         writer_->write(&my_message_);
-        // LOGPUBLISHNEWTARGET(this, my_message_);
+        LOGPUBLISHNEWTARGET(this, my_message_);
         return true;
     }
     return false;
 }
 
-// Implement the listener class methods
-TargetPublisher::PubListener::PubListener()
-    : matched_(0)
+TargetPublisher::PubListener::PubListener(TargetPublisher* parent)
+    : matched_(0), parent_(parent)
 {
 }
 
@@ -216,7 +211,5 @@ void TargetPublisher::PubListener::on_publication_matched(DataWriter* writer, co
     else if (info.current_count_change == -1) {
         matched_ = info.total_count;
     }
-
-    // LOGPUBLISHERMATCHING(parent_, info.current_count_change);  // Passiamo parent_
-
+    LOGTARGPUBLISHERMATCHING(parent_, info.current_count_change);
 }

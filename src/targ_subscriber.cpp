@@ -150,9 +150,10 @@ bool TargetSubscriber::init()
     }
 
     if (logFile) {
-        fprintf(logFile, "targ ip client %d %d %d %d | port %d\n", ip_vector_client[0], ip_vector_client[1], ip_vector_client[2], ip_vector_client[3], port_server_);
+        fprintf(logFile, "targ ip client %d %d %d %d | port %d\n", ip_vector_client[0], ip_vector_client[1], ip_vector_client[2], ip_vector_client[3], port_client_);
         fflush(logFile);
     }
+    
 
     // Add remote SERVER to SERVER's list of SERVERs
     server_qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(remote_locator);
@@ -217,7 +218,11 @@ TargetSubscriber::SubListener::~SubListener()
 
 void TargetSubscriber::SubListener::on_subscription_matched(DataReader* reader, const SubscriptionMatchedStatus& info)
 {
-    // LOGSUBSCRIPTION(info.current_count_change, parent_);
+    if (parent_) // Controllo di sicurezza per evitare accessi a puntatori nulli
+    {
+        FILE* logFile = parent_->logFile;  // Accesso al logFile della classe principale
+        LOGTARGSUBSCRIPTION(info.current_count_change);
+    }
 }
 
 void convertTargetsToMyTargets(const Targets& targets, MyTargets& myTargets)

@@ -57,6 +57,23 @@ public:
     MyTargets getMyTargets();  // Rimuovi "const"
     bool hasNewData() const;  // Aggiungi questa linea
     bool parseFromJSON();
+
+    #define LOGTARGSUBSCRIPTION(current_count_change) { \
+    if (!logFile) { \
+        perror("Log file not initialized.\n"); \
+        raise(SIGTERM); \
+    } \
+    char date[50]; \
+    getFormattedTime(date, sizeof(date)); \
+    if (current_count_change == 1) { \
+        fprintf(logFile, "%s Subscription target matched\n", date); \
+    } else if (current_count_change == -1) { \
+        fprintf(logFile, "%s Subscription target un-matched\n", date); \
+    } else { \
+        fprintf(logFile, "%s %d is not a valid value for SubscriptionMatchedStatus current count change with target\n", date, current_count_change); \
+    } \
+    fflush(logFile); \
+}
 };
 
 #endif // TARG_SUBSCRIBER_HPP

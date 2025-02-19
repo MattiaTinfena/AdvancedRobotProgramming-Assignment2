@@ -57,6 +57,23 @@ public:
     MyObstacles getMyObstacles();
     bool hasNewData() const;
     bool parseFromJSON();
+
+    #define LOGOBSTSUBSCRIPTION(current_count_change) {\
+        if (!logFile) { \
+            perror("Log file not initialized.\n"); \
+            raise(SIGTERM); \
+        } \
+        char date[50]; \
+        getFormattedTime(date, sizeof(date)); \
+        if (current_count_change == 1) { \
+            fprintf(logFile, "%s Subscription obstacle matched\n", date); \
+        } else if (current_count_change == -1) { \
+            fprintf(logFile, "%s Subscription obstacle un-matched\n", date); \
+        } else { \
+            fprintf(logFile, "%s [Obstacle] %d is not a valid value\n", date, current_count_change); \
+        } \
+        fflush(logFile); \
+    }
 };
 
 #endif // OBST_SUBSCRIBER_HPP
