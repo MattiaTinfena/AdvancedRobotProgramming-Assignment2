@@ -26,8 +26,13 @@ private:
     DataReader* reader_;
     Topic* topic_;
     TypeSupport type_;
-    MyTargets received_targets_;  // Variabile che contiene i dati ricevuti
-    bool new_data_;  // Aggiungi questa linea
+    MyTargets received_targets_;
+    bool new_data_;
+    std::array<int, 4> ip_vector_server;
+    int port_server_;
+    std::array<int, 4> ip_vector_client;
+    int port_client_;
+    FILE *logFile;
 
     class SubListener : public DataReaderListener
     {
@@ -51,6 +56,24 @@ public:
     void run();
     MyTargets getMyTargets();  // Rimuovi "const"
     bool hasNewData() const;  // Aggiungi questa linea
+    bool parseFromJSON();
+
+    #define LOGTARGSUBSCRIPTION(current_count_change) { \
+    if (!logFile) { \
+        perror("Log file not initialized.\n"); \
+        raise(SIGTERM); \
+    } \
+    char date[50]; \
+    getFormattedTime(date, sizeof(date)); \
+    if (current_count_change == 1) { \
+        fprintf(logFile, "%s Subscription target matched\n", date); \
+    } else if (current_count_change == -1) { \
+        fprintf(logFile, "%s Subscription target un-matched\n", date); \
+    } else { \
+        fprintf(logFile, "%s %d is not a valid value for SubscriptionMatchedStatus current count change with target\n", date, current_count_change); \
+    } \
+    fflush(logFile); \
+}
 };
 
 #endif // TARG_SUBSCRIBER_HPP

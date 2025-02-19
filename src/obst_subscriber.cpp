@@ -1,6 +1,8 @@
 #include "Generated/ObstaclesPubSubTypes.hpp"
 #include <chrono>
 #include <thread>
+#include <cjson/cJSON.h>
+#include <fstream>
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 #include <fastdds/dds/subscriber/DataReader.hpp>
@@ -27,8 +29,19 @@ ObstacleSubscriber::ObstacleSubscriber()
     , type_(new ObstaclesPubSubType())
     , listener_(this)  
     , new_data_(false)
-{
-}
+    , port_server_(0)
+    , port_client_(0)
+    , logFile(nullptr)
+    {
+        std::fill(std::begin(ip_vector_server), std::end(ip_vector_server), 0);
+        std::fill(std::begin(ip_vector_client), std::end(ip_vector_client), 0);
+        logFile = fopen("log/logfile.log", "a");
+        if (logFile == NULL) {
+            perror("Errore nell'apertura del file");
+            exit(1);
+        }
+    }
+
 
 ObstacleSubscriber::~ObstacleSubscriber()
 {
@@ -44,11 +57,80 @@ ObstacleSubscriber::~ObstacleSubscriber()
     {
         participant_->delete_subscriber(subscriber_);
     }
+
+    if (logFile) {
+        fclose(logFile);
+    }
     DomainParticipantFactory::get_instance()->delete_participant(participant_);
+}
+
+bool ObstacleSubscriber::parseFromJSON()
+{
+    FILE* settingsFile = fopen("appsettings.json", "r");
+    if (!settingsFile) {
+        return false;
+    }
+
+    fseek(settingsFile, 0, SEEK_END);
+    long length = ftell(settingsFile);
+    fseek(settingsFile, 0, SEEK_SET);
+    char* data = (char*)malloc(length + 1);
+    if (!data) {
+        fclose(settingsFile);
+        return false;
+    }
+    fread(data, 1, length, settingsFile);
+    data[length] = '\0';
+    fclose(settingsFile);
+
+    cJSON* config = cJSON_Parse(data);
+    free(data);
+    if (!config) {
+        return false;
+    }
+
+    cJSON* ip_array = cJSON_GetObjectItem(config, "IPServer");
+    if (!cJSON_IsArray(ip_array) || cJSON_GetArraySize(ip_array) != 4) {
+        cJSON_Delete(config);
+        return false;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        ip_vector_server[i] = cJSON_GetArrayItem(ip_array, i)->valueint;
+    }
+
+
+    cJSON* port_item = cJSON_GetObjectItem(config, "portServerObstacle");
+    if (cJSON_IsNumber(port_item)) {
+        port_server_ = port_item->valueint;
+    }
+
+    ip_array = cJSON_GetObjectItem(config, "IPClient");
+    if (!cJSON_IsArray(ip_array) || cJSON_GetArraySize(ip_array) != 4) {
+        cJSON_Delete(config);
+        return false;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        ip_vector_client[i] = cJSON_GetArrayItem(ip_array, i)->valueint;
+    }
+
+
+    port_item = cJSON_GetObjectItem(config, "portClientObstacle");
+    if (cJSON_IsNumber(port_item)) {
+        port_client_ = port_item->valueint;
+    }
+
+    cJSON_Delete(config);
+    return true;
 }
 
 bool ObstacleSubscriber::init()
 {
+    if (!parseFromJSON()) {
+        return false;
+    }
+
     DomainParticipantQos server_qos = PARTICIPANT_QOS_DEFAULT;
 
     // Set participant as SERVER
@@ -57,15 +139,28 @@ bool ObstacleSubscriber::init()
 
     // Set SERVER's listening locator for PDP
     Locator_t locator;
-    IPLocator::setIPv4(locator, 192, 168, 15, 118);
-    locator.port = 11811;
+
+    IPLocator::setIPv4(locator, (int)ip_vector_server[0], (int)ip_vector_server[1], (int)ip_vector_server[2], (int)ip_vector_server[3]);
+    locator.port = port_server_;
+
     server_qos.wire_protocol().builtin.metatrafficUnicastLocatorList.push_back(locator);
+
+    if (logFile) {
+        fprintf(logFile, "obst ip server %d %d %d %d | port %d\n", ip_vector_server[0], ip_vector_server[1], ip_vector_server[2], ip_vector_server[3], port_server_);
+        fflush(logFile);
+    }
 
     /* Add a remote serve to which this server will connect */
     // Set remote SERVER's listening locator for PDP
     Locator_t remote_locator;
-    IPLocator::setIPv4(remote_locator, 192, 168, 15, 96);
-    remote_locator.port = 11812;
+
+    IPLocator::setIPv4(remote_locator, (int)ip_vector_client[0], (int)ip_vector_client[1], (int)ip_vector_client[2], (int)ip_vector_client[3]);
+    remote_locator.port = port_client_;
+
+    if (logFile) {
+        fprintf(logFile, "obst ip client %d %d %d %d | port %d\n", ip_vector_client[0], ip_vector_client[1], ip_vector_client[2], ip_vector_client[3], port_client_);
+        fflush(logFile);
+    }
 
     // Add remote SERVER to SERVER's list of SERVERs
     server_qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(remote_locator);
@@ -131,17 +226,10 @@ ObstacleSubscriber::SubListener::~SubListener()
 
 void ObstacleSubscriber::SubListener::on_subscription_matched(DataReader* reader, const SubscriptionMatchedStatus& info)
 {
-    if (info.current_count_change == 1)
+    if (parent_) // Controllo di sicurezza per evitare accessi a puntatori nulli
     {
-        // std::cout << "Obstacle Subscriber matched." << std::endl;
-    }
-    else if (info.current_count_change == -1)
-    {
-        // std::cout << "Obstacle Subscriber unmatched." << std::endl;
-    }
-    else
-    {
-        // std::cout << info.current_count_change << " is not a valid value for SubscriptionMatchedStatus current count change." << std::endl;
+        FILE* logFile = parent_->logFile;  // Accesso al logFile della classe principale
+        LOGOBSTSUBSCRIPTION(info.current_count_change);
     }
 }
 

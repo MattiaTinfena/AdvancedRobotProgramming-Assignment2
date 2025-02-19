@@ -138,8 +138,8 @@ int main() {
     int interval = 0;
 
     while (1) {
-
         sleep(1);
+
         // interval++;
 
         // if(interval >= 4){

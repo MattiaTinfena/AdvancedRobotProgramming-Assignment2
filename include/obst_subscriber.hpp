@@ -28,6 +28,11 @@ private:
     TypeSupport type_;
     MyObstacles received_obstacles_;  // Variabile che contiene i dati ricevuti
     bool new_data_;
+    std::array<int, 4> ip_vector_server;
+    int port_server_;
+    std::array<int, 4> ip_vector_client;
+    int port_client_;
+    FILE *logFile;
 
     class SubListener : public DataReaderListener
     {
@@ -49,8 +54,26 @@ public:
 
     bool init();
     void run();
-    MyObstacles getMyObstacles();  // Metodo per accedere ai dati ricevuti
+    MyObstacles getMyObstacles();
     bool hasNewData() const;
+    bool parseFromJSON();
+
+    #define LOGOBSTSUBSCRIPTION(current_count_change) {\
+        if (!logFile) { \
+            perror("Log file not initialized.\n"); \
+            raise(SIGTERM); \
+        } \
+        char date[50]; \
+        getFormattedTime(date, sizeof(date)); \
+        if (current_count_change == 1) { \
+            fprintf(logFile, "%s Subscription obstacle matched\n", date); \
+        } else if (current_count_change == -1) { \
+            fprintf(logFile, "%s Subscription obstacle un-matched\n", date); \
+        } else { \
+            fprintf(logFile, "%s [Obstacle] %d is not a valid value\n", date, current_count_change); \
+        } \
+        fflush(logFile); \
+    }
 };
 
-#endif // HELLO_WORLD_SUBSCRIBER_HPP
+#endif // OBST_SUBSCRIBER_HPP

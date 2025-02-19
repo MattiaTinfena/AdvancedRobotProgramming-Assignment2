@@ -7,6 +7,8 @@
 
 #include <chrono>
 #include <thread>
+#include <cjson/cJSON.h>
+#include <fstream>
 
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
@@ -18,6 +20,7 @@
 
 #include "obst_publisher.hpp"  // Include the header file
 #include "auxfunc.h"
+
 
 using namespace eprosima::fastdds::dds;
 using namespace eprosima::fastdds::rtps;
@@ -31,8 +34,17 @@ ObstaclePublisher::ObstaclePublisher()
     , topic_(nullptr)
     , writer_(nullptr)
     , type_(new ObstaclesPubSubType())
-{
-}
+    , obstFile(nullptr)
+    , port_(0)
+    , listener_(this)  
+    {
+        std::fill(std::begin(ip_vector), std::end(ip_vector), 0);
+        obstFile = fopen("log/obstacle.log", "a");
+        if (obstFile == NULL) {
+            perror("Errore nell'apertura del obstFile");
+            exit(1);
+        }
+    }
 
 ObstaclePublisher::~ObstaclePublisher()
 {
@@ -48,11 +60,63 @@ ObstaclePublisher::~ObstaclePublisher()
     {
         participant_->delete_topic(topic_);
     }
+    if (obstFile) {
+        fclose(obstFile);
+    }
     DomainParticipantFactory::get_instance()->delete_participant(participant_);
+}
+
+bool ObstaclePublisher::parseFromJSON()
+{
+    FILE* settingsFile = fopen("appsettings.json", "r");
+    if (!settingsFile) {
+        return false;
+    }
+
+    fseek(settingsFile, 0, SEEK_END);
+    long length = ftell(settingsFile);
+    fseek(settingsFile, 0, SEEK_SET);
+    char* data = (char*)malloc(length + 1);
+    if (!data) {
+        fclose(settingsFile);
+        return false;
+    }
+    fread(data, 1, length, settingsFile);
+    data[length] = '\0';
+    fclose(settingsFile);
+
+    cJSON* config = cJSON_Parse(data);
+    free(data);
+    if (!config) {
+        return false;
+    }
+
+    cJSON* ip_array = cJSON_GetObjectItem(config, "IPServer");
+    if (!cJSON_IsArray(ip_array) || cJSON_GetArraySize(ip_array) != 4) {
+        cJSON_Delete(config);
+        return false;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        ip_vector[i] = cJSON_GetArrayItem(ip_array, i)->valueint;
+    }
+
+
+    cJSON* port_item = cJSON_GetObjectItem(config, "portServerObstacle");
+    if (cJSON_IsNumber(port_item)) {
+        port_ = port_item->valueint;
+    }
+
+    cJSON_Delete(config);
+    return true;
 }
 
 bool ObstaclePublisher::init()
 {
+    
+    if (!parseFromJSON()) {
+        return false;
+    }
 
     // Get default participant QoS
     DomainParticipantQos client_qos = PARTICIPANT_QOS_DEFAULT;
@@ -63,8 +127,15 @@ bool ObstaclePublisher::init()
 
     // Set SERVER's listening locator for PDP
     Locator_t locator;
-    IPLocator::setIPv4(locator, 192, 168, 15, 96);
-    locator.port = 11811;
+
+    IPLocator::setIPv4(locator, (int)ip_vector[0], (int)ip_vector[1], (int)ip_vector[2], (int)ip_vector[3]);
+    locator.port = port_;
+
+    if (obstFile) {
+        fprintf(obstFile, "ip %d %d %d %d | port %d\n", ip_vector[0], ip_vector[1], ip_vector[2], ip_vector[3], port_);
+        fflush(obstFile);
+    }
+
 
     // Add remote SERVER to CLIENT's list of SERVERs
     client_qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(locator);
@@ -109,6 +180,7 @@ bool ObstaclePublisher::init()
     return true;
 }
 
+
 bool ObstaclePublisher::publish(MyObstacles myObstacles){
     
     if (listener_.matched_ > 0){
@@ -124,17 +196,14 @@ bool ObstaclePublisher::publish(MyObstacles myObstacles){
         my_message_.obstacles_number(myObstacles.number);
 
         writer_->write(&my_message_);
+        LOGPUBLISHNEWOBSTACLES(this, my_message_);
         return true;
     }
     return false;
-    //--------------------
-    // TO LOG
-    //--------------------
 }
 
-// Implement the listener class methods
-ObstaclePublisher::PubListener::PubListener()
-    : matched_(0)
+ObstaclePublisher::PubListener::PubListener(ObstaclePublisher* parent)
+    : matched_(0), parent_(parent)
 {
 }
 
@@ -158,4 +227,6 @@ void ObstaclePublisher::PubListener::on_publication_matched(DataWriter* writer, 
     {
         // std::cout << info.current_count_change << " is not a valid value for PublicationMatchedStatus current count change." << std::endl;
     }
+
+    LOGOBSTPUBLISHERMATCHING(parent_, info.current_count_change);
 }
