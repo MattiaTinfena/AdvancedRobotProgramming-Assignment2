@@ -71,11 +71,6 @@ int main(int argc, char *argv[]) {
         perror("Errore nell'aprire il file di log");
         return 1;
     }
-    
-    if (argc < 3) {
-        fprintf(stderr, "Uso: %s <fd_str[0]> <fd_str[1]> <fd_str[2]> <fd_str[3]>\n", argv[0]);
-        exit(1);
-    }
 
    
     char *fd_str0 = argv[1];

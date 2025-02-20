@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
     inputFile = fopen("log/input.log", "a");
      
     if (inputFile == NULL) {
-        perror("Errore nell'apertura del file");
+        perror("Error in opening the file");
         exit(1);
     }
 

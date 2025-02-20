@@ -12,12 +12,12 @@
 #include <fastdds/dds/subscriber/SampleInfo.hpp>
 #include <fastdds/dds/subscriber/Subscriber.hpp>
 #include <fastdds/dds/topic/TypeSupport.hpp>
-#include "targ_subscriber.hpp"  // Include il file header
+#include "targ_subscriber.hpp" 
 #include "auxfunc.h"
 
 using namespace eprosima::fastdds::dds;
 using namespace eprosima::fastdds::rtps;
-// Constructor implementations
+
 TargetSubscriber::TargetSubscriber()
     : participant_(nullptr)
     , subscriber_(nullptr)
@@ -25,7 +25,7 @@ TargetSubscriber::TargetSubscriber()
     , reader_(nullptr)
     , type_(new TargetsPubSubType())
     , listener_(this)
-    , new_data_(false)  // Inizializza new_data_
+    , new_data_(false) 
     , port_server_(0)
     , port_client_(0)
     , logFile(nullptr)
@@ -34,7 +34,7 @@ TargetSubscriber::TargetSubscriber()
         std::fill(std::begin(ip_vector_client), std::end(ip_vector_client), 0);
         logFile = fopen("log/logfile.log", "a");
         if (logFile == NULL) {
-            perror("Errore nell'apertura del file");
+            perror("Error in opening the file");
             exit(1);
         }
     }
@@ -144,10 +144,8 @@ bool TargetSubscriber::init()
     IPLocator::setIPv4(remote_locator, (int)ip_vector_client[0], (int)ip_vector_client[1], (int)ip_vector_client[2], (int)ip_vector_client[3]);
     remote_locator.port = port_client_;
 
-
     LOGIPSUBSCRIBERTA(this, ip_vector_client, port_client_, ip_vector_server, port_server_);
     
-
     // Add remote SERVER to SERVER's list of SERVERs
     server_qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(remote_locator);
 
@@ -192,14 +190,14 @@ void TargetSubscriber::run(){
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
-// Implementazione del metodo per ottenere i dati ricevuti
+// Implementation of the method to get the received data
 MyTargets TargetSubscriber::getMyTargets()
 {
-    listener_.new_data_ = false;  // Resetta il flag quando i dati vengono letti
+    listener_.new_data_ = false;  // Resets the flag when the data is read
     return received_targets_;
 }
 
-// Implementazione del listener
+// Listener implementation
 TargetSubscriber::SubListener::SubListener(TargetSubscriber* parent)
     : samples_(0), parent_(parent), new_data_(false)
 {
@@ -211,9 +209,9 @@ TargetSubscriber::SubListener::~SubListener()
 
 void TargetSubscriber::SubListener::on_subscription_matched(DataReader* reader, const SubscriptionMatchedStatus& info)
 {
-    if (parent_) // Controllo di sicurezza per evitare accessi a puntatori nulli
+    if (parent_) // Security check to prevent access to null pointers
     {
-        FILE* logFile = parent_->logFile;  // Accesso al logFile della classe principale
+        FILE* logFile = parent_->logFile; 
         LOGTARGSUBSCRIPTION(info.current_count_change);
     }
 }

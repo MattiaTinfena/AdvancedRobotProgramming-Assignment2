@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
     // Opening log file
     targFile = fopen("log/target.log", "a");
     if (targFile == NULL) {
-        perror("Errore nell'apertura del file");
+        perror("Error in opening the file");
         exit(1);
     }
 

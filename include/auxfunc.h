@@ -95,37 +95,37 @@ typedef struct {
 
 extern char jsonBuffer[MAX_FILE_SIZE];
 
-// Funzioni di logging e gestione errori
+// Logging and error handling functions
 void handleLogFailure();
 
-// Funzioni di lettura/scrittura sicura su file
+// Secure read/write functions on files
 int writeSecure(const char* filename, const char* data, char mode);
 int readSecure(const char* filename, char* data, size_t datasize);
 
-// Gestione segnali
+// Signal Management
 void handler(char id);
 
-// Funzioni di comunicazione con pipe
+// Pipe communication functions
 void writeMsg(int pipeFds, Message* msg, const char* error, FILE* file);
 void readMsg(int pipeFds, Message* msgOut, const char* error, FILE* file);
 void writeInputMsg(int pipeFds, inputMessage* msg, const char* error, FILE* file);
 void readInputMsg(int pipeFds, inputMessage* msgOut, const char* error, FILE* file);
 
-// Funzione per leggere file descriptor da input
+// Function to read file descriptor from input
 void fdsRead(int argc, char* argv[], int* fds);
 
-// Funzione per scrivere il PID su file
+// Function to write PID to file
 int writePid(const char* file, char mode, char id);
 
-// Funzioni per stampare messaggi su file
+// Functions for printing messages to file
 void printInputMessageToFile(FILE *file, inputMessage* msg);
 void printMessageToFile(FILE *file, Message* msg);
 
-// Funzioni di inizializzazione delle strutture dati
+// Data structure initialization functions
 void msgInit(Message* status);
 void inputMsgInit(inputMessage* status);
 
-// Funzione per ottenere l'orario formattato
+// Function to get the time formatted
 void getFormattedTime(char *buffer, size_t size);
 
 #endif // AUXFUNC_H

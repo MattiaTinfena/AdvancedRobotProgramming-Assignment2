@@ -7,12 +7,18 @@
 #include <time.h>
 #include "auxfunc.h"
 
-// Macro di configurazione
-#define MAX_LINE_LENGTH 100
-#define USE_DEBUG 1
+#define USE_DEBUG 1 // 0 for release, 1 for debug
+extern FILE *wdFile; // Global variable
 
-// Variabili globali
-extern FILE *wdFile;
+//Functions definition
+void sig_handler(int signo);
+void closeAll(int id);
+long convertToSeconds(int hh, int mm, int ss);
+
+
+/*********************************************************************************************************************/
+/********************************************FUNCTIONS TO LOG*********************************************************/
+/*********************************************************************************************************************/
 
 #define LOGWDDIED() { \
     if (!wdFile) {                                                              \

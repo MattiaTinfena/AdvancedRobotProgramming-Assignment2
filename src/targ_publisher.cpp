@@ -18,7 +18,7 @@
  #include <fastdds/dds/topic/TypeSupport.hpp>
  #include <fastdds/rtps/transport/TCPv4TransportDescriptor.hpp>
  
-#include "targ_publisher.hpp"  // Include the header file
+#include "targ_publisher.hpp"
 #include "auxfunc.h"
 
  
@@ -33,10 +33,10 @@
      , type_(new TargetsPubSubType())
      , targFile(nullptr)
      , port_(0)
-     , listener_(this)  // Inizializza listener_ passando this
+     , listener_(this) 
  {
      std::fill(std::begin(ip_vector), std::end(ip_vector), 0);
-     targFile = fopen("log/target.log", "a");  // Apri il file di log in modalità append
+     targFile = fopen("log/target.log", "a");
      if (!targFile) {        
          std::cerr << "Errore nell'aprire il file di log!" << std::endl;
      }

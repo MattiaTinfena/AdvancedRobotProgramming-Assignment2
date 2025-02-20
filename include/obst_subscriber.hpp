@@ -26,7 +26,7 @@ private:
     DataReader* reader_;
     Topic* topic_;
     TypeSupport type_;
-    MyObstacles received_obstacles_;  // Variabile che contiene i dati ricevuti
+    MyObstacles received_obstacles_;
     bool new_data_;
     std::array<int, 4> ip_vector_server;
     int port_server_;
@@ -44,7 +44,7 @@ private:
 
         Obstacles my_message_;
         std::atomic_int samples_;
-        ObstacleSubscriber* parent_;  // Puntatore alla classe principale
+        ObstacleSubscriber* parent_;
         bool new_data_;
     } listener_;
 

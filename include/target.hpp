@@ -7,12 +7,8 @@
 #include <time.h>
 #include "auxfunc.h"
 
-//Macro's configuration
-#define MAX_LINE_LENGTH 100
-#define USE_DEBUG 1
-
-//Global variables
-extern FILE *targFile;
+#define USE_DEBUG 1 // 0 for release, 1 for debug
+extern FILE *targFile; //Global variable
 
 //Functions definition
 int canSpawnPrev(int x_pos, int y_pos);

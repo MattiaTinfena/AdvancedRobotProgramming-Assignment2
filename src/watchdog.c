@@ -20,32 +20,6 @@ long times[PROCESSTOCONTROL] = {0, 0, 0, 0, 0};
 
 FILE *wdFile;
 
-void sig_handler(int signo) {
-    if(signo == SIGTERM){
-        LOGWDDIED();
-        fclose(wdFile);
-        exit(EXIT_SUCCESS);
-    }
-}
-
-void closeAll(int id){
-    for(int i  = 0; i < PROCESSTOCONTROL; i++){
-        if (pids[i] == 0) continue;
-        if (i != id) {
-            if (kill(pids[i], SIGTERM) == -1) {
-                LOGPROCESSDIED(pids[i]);
-            }
-        }
-    }
-    LOGWDDIED();
-    fclose(wdFile);
-    exit(EXIT_SUCCESS);
-}
-
-long convertToSeconds(int hh, int mm, int ss) {
-    return hh * 3600 + mm * 60 + ss;
-}
-
 int main() {
 
     wdFile = fopen("log/watchdog.log", "w");
@@ -165,65 +139,51 @@ int main() {
         time(&rawtime);
         timeinfo = localtime(&rawtime);
 
-        // Inizializza la stringa di input correttamente prima di usare strtok
-        char timeReaded[200];  // Inserisci la tua stringa di tempo
+        char timeReaded[200];
 
         if (readSecure("log/passParam.txt", timeReaded, sizeof(timeReaded)) == -1) {
             perror("[WD1] Error reading the passParam wdFile");
             exit(1);
         }
 
-        memset(times, 0, sizeof(times));  // Reset dell'array times
+        memset(times, 0, sizeof(times));
 
-        char *token = strtok(timeReaded, ","); // Modifica per il corretto parsing
+        char *token = strtok(timeReaded, ",");
 
         while (token != NULL) {
             if (token[0] == '!') {
-                token++; // Ignora il carattere '!'
+                token++;
             }
 
-            char lettera = token[0]; // Prima lettera
+            char letter = token[0];
             int hh, mm, ss;
 
-            // Usa atoi per estrarre le ore, i minuti e i secondi
-            sscanf(token + 1, "%d:%d:%d", &hh, &mm, &ss);
 
-            // Calcola il tempo in secondi
+            sscanf(token + 1, "%d:%d:%d", &hh, &mm, &ss);
             long pidtime = convertToSeconds(hh, mm, ss);
 
-            // Log prima della gestione
-            fprintf(wdFile, "Parsing token: %s | pidtime: %ld\n", token, pidtime);
-            fflush(wdFile);
 
-            // Associa il valore di secondi all'array times in base alla lettera
-            if (lettera == 'i') {
+            if (letter == 'i') {
                 times[INPUT] = pidtime;
-            } else if (lettera == 'd') {
+            } else if (letter == 'd') {
                 times[DRONE] = pidtime;
-            } else if (lettera == 'o') {
+            } else if (letter == 'o') {
                 times[OBSTACLE] = pidtime;
-            } else if (lettera == 't') {
+            } else if (letter == 't') {
                 times[TARGET] = pidtime;
-            } else if (lettera == 'b') {
+            } else if (letter == 'b') {
                 times[BLACKBOARD] = pidtime;
             }
 
             token = strtok(NULL, ",");
         }
 
-        // Log dei tempi
-        for(int i = 0; i < PROCESSTOCONTROL; i++){
-            fprintf(wdFile, "times[%d]: %ld\n", i, times[i]);
-            fflush(wdFile);
-        }
 
         for(int i = 0; i < PROCESSTOCONTROL; i++){
             if (pids[i] != 0) {
                 long currentTimeInSeconds = convertToSeconds(timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
                 long timeDifference = currentTimeInSeconds - times[i];
 
-                fprintf(wdFile, "current: %ld times[%d] %ld difference: %ld\n", currentTimeInSeconds, i, times[i], timeDifference);
-                fflush(wdFile);
 
                 if (timeDifference > 5) {
                     closeAll(i);
@@ -236,4 +196,31 @@ int main() {
     fclose(wdFile);
 
     return 0;
+}
+
+
+void sig_handler(int signo) {
+    if(signo == SIGTERM){
+        LOGWDDIED();
+        fclose(wdFile);
+        exit(EXIT_SUCCESS);
+    }
+}
+
+void closeAll(int id){
+    for(int i  = 0; i < PROCESSTOCONTROL; i++){
+        if (pids[i] == 0) continue;
+        if (i != id) {
+            if (kill(pids[i], SIGTERM) == -1) {
+                LOGPROCESSDIED(pids[i]);
+            }
+        }
+    }
+    LOGWDDIED();
+    fclose(wdFile);
+    exit(EXIT_SUCCESS);
+}
+
+long convertToSeconds(int hh, int mm, int ss) {
+    return hh * 3600 + mm * 60 + ss;
 }

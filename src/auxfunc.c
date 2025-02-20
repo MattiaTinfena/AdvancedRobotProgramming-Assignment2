@@ -24,7 +24,7 @@ int writeSecure(const char* filename, const char* data, char mode) {
     int fd;
     
     if (mode == 'w') {
-        // Apri il file solo per troncarlo, poi chiudilo immediatamente
+        // Open the file just to truncate it, then close it immediately
         fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT, 0666);
         if (fd == -1) {
             perror("Errore nell'apertura per troncamento");
@@ -32,18 +32,18 @@ int writeSecure(const char* filename, const char* data, char mode) {
         }
         close(fd);
 
-        // Ora riapri il file normalmente
+        // Reopen the file normally
         fd = open(filename, O_WRONLY | O_CREAT, 0666);
     } else { 
         fd = open(filename, O_WRONLY | O_APPEND | O_CREAT, 0666);
     }
 
     if (fd == -1) {
-        perror("Errore nell'apertura del file");
+        perror("Error in opening the file");
         return -1;
     }
 
-    // Scrive i dati nel file
+    // Write data on file
     ssize_t len = write(fd, data, strlen(data));
     if (len < (ssize_t)strlen(data)) {
         perror("Errore nella scrittura del file");
@@ -60,21 +60,21 @@ int writeSecure(const char* filename, const char* data, char mode) {
 int readSecure(const char* filename, char* data, size_t dataSize) {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
-        perror("Errore nell'apertura del file");
+        perror("Error in opening the file");
         return -1;
     }
 
     int fd = fileno(file);
     if (fd == -1) {
-        perror("Errore nel recupero del file descriptor");
+        perror("Error in retrieving file descriptor");
         fclose(file);
         return -1;
     }
 
-    // Blocca il file per lettura condivisa
+    // Lock file for shared reading
     while (flock(fd, LOCK_SH) == -1) {
         if (errno == EWOULDBLOCK) {
-            usleep(100000);  // Pausa di 100 ms
+            usleep(100000);
         } else {
             perror("Errore nel blocco del file");
             fclose(file);
@@ -82,7 +82,7 @@ int readSecure(const char* filename, char* data, size_t dataSize) {
         }
     }
 
-    // Legge i dati dal file
+    // Read data from file
     size_t len = fread(data, sizeof(char), dataSize - 1, file);
     if (len == 0 && ferror(file)) {
         perror("Errore nella lettura del file");
@@ -90,9 +90,9 @@ int readSecure(const char* filename, char* data, size_t dataSize) {
         fclose(file);
         return -1;
     }
-    data[len] = '\0';  // Assicura che la stringa sia null-terminata
+    data[len] = '\0';  // Ensures that the string is null-terminated
 
-    // Sblocca il file
+    // Unlock the file
     if (flock(fd, LOCK_UN) == -1) {
         perror("Errore nello sblocco del file");
         fclose(file);
@@ -241,7 +241,7 @@ void handler(char id) {
 }
 
 
-// Funzione helper per ottenere il timestamp formattato
+// Helper function to get the formatted timestamp
 void getFormattedTime(char *buffer, unsigned long size) {
     time_t currentTime = time(NULL);
     snprintf(buffer, size, "%.*s", (int)(strlen(ctime(&currentTime)) - 1), ctime(&currentTime));

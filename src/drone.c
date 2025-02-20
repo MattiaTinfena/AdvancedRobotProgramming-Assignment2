@@ -153,8 +153,6 @@ int main(int argc, char *argv[]) {
                 
                 newDrone(&drone, &status.targets, directions, status.msg);
                 droneUpdate(&drone, &speed, &force, &status);
-
-                //LOGPOSITION(drone);
                 
                 writeMsg(fds[askwr], &status, 
                         "[DRONE-A] Error sending drone position", droneFile);
@@ -231,14 +229,13 @@ void target_force(Drone *drone, MyTargets* targets) {
 
             if (distance > rho_0) continue;
 
-            float attraction = - psi * (distance - rho_0) / fmax(fabs(distance - rho_0), 1e-5); // Evita la divisione per zero
+            float attraction = - psi * (distance - rho_0) / fmax(fabs(distance - rho_0), 1e-5);
             if (attraction > maxForce) attraction = maxForce;
             force_t.x += attraction * (deltaX / distance);
             force_t.y += attraction * (deltaY / distance);
         }
     }
 
-    // Limita le forze combinate
     force_t.x = fmin(force_t.x, maxForce);
     force_t.y = fmin(force_t.y, maxForce);
 }
@@ -405,16 +402,6 @@ void readConfig() {
     maxForce = cJSON_GetObjectItemCaseSensitive(json, "MAXForce")->valuedouble;
     step = cJSON_GetObjectItemCaseSensitive(json, "Step")->valuedouble;
     psi = cJSON_GetObjectItemCaseSensitive(json, "PSItarget")->valuedouble;
-    
-
-
-    fprintf(droneFile, "K: %f\n", K);
-    fprintf(droneFile, "Drone Mass: %f\n", droneMass);
-    fprintf(droneFile, "ETA: %f\n", eta);
-    fprintf(droneFile, "RHO0: %f\n", rho_0);
-    fprintf(droneFile, "Max Force: %f\n", maxForce);
-    fprintf(droneFile, "Step: %f\n", step);
-    fprintf(droneFile, "PSI: %f\n", psi);
 
     cJSON_Delete(json);
 }

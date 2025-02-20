@@ -58,7 +58,7 @@ int main() {
 
     FILE *passParamFile = fopen("log/passParam.txt", "w");
     if (passParamFile == NULL) {
-        perror("Errore nell'apertura del file passParam");
+        perror("Error in opening the file passParam");
         exit(1);
     }
 
@@ -82,7 +82,7 @@ int main() {
         if (pids[DRONE] == 0) {
             char *argd[] = { "./bin/drone", fd_str[DRONE], NULL };
             execvp(argd[0], argd);
-            perror("Errore in execvp per drone");
+            perror("Error in execvp for drone");
             exit(1);
         }
 
@@ -90,7 +90,7 @@ int main() {
         if (pids[INPUT] == 0) {
             char *argi[] = { "konsole", "-e", "./bin/input", fd_str[INPUT], NULL }; 
             execvp(argi[0], argi);
-            perror("Errore in execvp per input");
+            perror("Error in execvp for input");
             exit(1);
         }
     } else if (choice == 2) {
@@ -98,7 +98,7 @@ int main() {
         if (pids[TARGET] == 0) {
             char *argt[] = { "./bin/target", fd_str[TARGET], NULL };
             execvp(argt[0], argt);
-            perror("Errore in execvp per target");
+            perror("Error in execvp for target");
             exit(1);
         }
 
@@ -106,7 +106,7 @@ int main() {
         if (pids[OBSTACLE] == 0) {
             char *argo[] = { "./bin/obstacle", fd_str[OBSTACLE], NULL };
             execvp(argo[0], argo);
-            perror("Errore in execvp per obstacle");
+            perror("Error in execvp for obstacle");
             exit(1);
         }
     }

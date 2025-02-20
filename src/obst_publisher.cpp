@@ -18,7 +18,7 @@
  #include <fastdds/dds/topic/TypeSupport.hpp>
  #include <fastdds/rtps/transport/TCPv4TransportDescriptor.hpp>
  
- #include "obst_publisher.hpp"  // Include the header file
+ #include "obst_publisher.hpp"
 #include "auxfunc.h"
  
  
@@ -212,19 +212,11 @@
  
  void ObstaclePublisher::PubListener::on_publication_matched(DataWriter* writer, const PublicationMatchedStatus& info)
  {
-     if (info.current_count_change == 1)
-     {
+     if (info.current_count_change == 1) {
          matched_ = info.total_count;
-         // std::cout << "Obstacle Publisher matched." << std::endl;
      }
-     else if (info.current_count_change == -1)
-     {
+     else if (info.current_count_change == -1) {
          matched_ = info.total_count;
-         // std::cout << "Obstacle Publisher unmatched." << std::endl;
-     }
-     else
-     {
-         // std::cout << info.current_count_change << " is not a valid value for PublicationMatchedStatus current count change." << std::endl;
      }
  
      LOGOBSTPUBLISHERMATCHING(parent_, info.current_count_change);

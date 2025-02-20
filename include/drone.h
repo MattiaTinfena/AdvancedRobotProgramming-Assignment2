@@ -7,9 +7,7 @@
 #include <time.h>
 #include "auxfunc.h"
 
-// Macro di configurazione
-#define MAX_LINE_LENGTH 100
-#define USE_DEBUG 1
+#define USE_DEBUG 1 // 0 for release, 1 for debug
 
 // Variabili globali
 extern FILE *droneFile;

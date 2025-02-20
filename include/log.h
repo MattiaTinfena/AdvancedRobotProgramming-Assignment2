@@ -5,11 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-// #include "auxfunc.h"
 
-//Macro's configuration
-#define MAX_LINE_LENGTH 100
-#define USE_DEBUG 1
+#define USE_DEBUG 1 // 0 for release, 1 for debug
 
 //Global variables
 extern FILE *logFile;

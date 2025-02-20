@@ -12,15 +12,12 @@
 #include <fastdds/dds/subscriber/SampleInfo.hpp>
 #include <fastdds/dds/subscriber/Subscriber.hpp>
 #include <fastdds/dds/topic/TypeSupport.hpp>
-#include "obst_subscriber.hpp"  // Include the header file
+#include "obst_subscriber.hpp" 
 #include "auxfunc.h"
 
 using namespace eprosima::fastdds::dds;
 using namespace eprosima::fastdds::rtps;
 
-// Le definizioni delle classi non dovrebbero essere incluse in obst_subscriber.cpp, ma solo dichiarate nel file header
-
-// Constructor implementations
 ObstacleSubscriber::ObstacleSubscriber()
     : participant_(nullptr)
     , subscriber_(nullptr)
@@ -37,7 +34,7 @@ ObstacleSubscriber::ObstacleSubscriber()
         std::fill(std::begin(ip_vector_client), std::end(ip_vector_client), 0);
         logFile = fopen("log/logfile.log", "a");
         if (logFile == NULL) {
-            perror("Errore nell'apertura del file");
+            perror("Error in opening the file");
             exit(1);
         }
     }
@@ -199,7 +196,7 @@ void ObstacleSubscriber::run(){
 
 MyObstacles ObstacleSubscriber::getMyObstacles()
 {
-    listener_.new_data_ = false;  // Resetta il flag quando i dati vengono letti
+    listener_.new_data_ = false;
     return received_obstacles_;
 }
 
@@ -216,9 +213,9 @@ ObstacleSubscriber::SubListener::~SubListener()
 
 void ObstacleSubscriber::SubListener::on_subscription_matched(DataReader* reader, const SubscriptionMatchedStatus& info)
 {
-    if (parent_) // Controllo di sicurezza per evitare accessi a puntatori nulli
+    if (parent_) // Security check to prevent access to null pointers
     {
-        FILE* logFile = parent_->logFile;  // Accesso al logFile della classe principale
+        FILE* logFile = parent_->logFile; 
         LOGOBSTSUBSCRIPTION(info.current_count_change);
     }
 }

@@ -7,9 +7,8 @@
 #include <time.h>
 #include "auxfunc.h"
 
-// Macro di configurazione
-#define MAX_LINE_LENGTH 100
-#define USE_DEBUG 1
+// Configuration macros
+#define USE_DEBUG 1 // 0 for release, 1 for debug
 
 #define HEIGHT  50
 #define WIDTH   80
@@ -39,7 +38,7 @@
 #define CHOOSEBUTTON 1
 #define CHOOSEDIFF 2
 
-// Variabili globali
+// Global variables
 extern FILE *inputFile;
 
 //Functions definition

@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     // Opening log file
     obstFile = fopen("log/obstacle.log", "a");
     if (obstFile == NULL) {
-        perror("Errore nell'apertura del obstFile");
+        perror("Error in opening the obstFile");
         exit(1);
     }
 

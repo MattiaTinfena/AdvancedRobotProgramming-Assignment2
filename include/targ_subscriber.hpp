@@ -44,8 +44,8 @@ private:
 
         Targets my_message_;
         std::atomic_int samples_;
-        TargetSubscriber* parent_;  // Puntatore alla classe principale
-        bool new_data_;  // Aggiungi questa linea
+        TargetSubscriber* parent_;
+        bool new_data_;
     } listener_;
 
 public:
@@ -54,8 +54,8 @@ public:
 
     bool init();
     void run();
-    MyTargets getMyTargets();  // Rimuovi "const"
-    bool hasNewData() const;  // Aggiungi questa linea
+    MyTargets getMyTargets(); 
+    bool hasNewData() const; 
     bool parseFromJSON();
 
     #define LOGTARGSUBSCRIPTION(current_count_change) { \
