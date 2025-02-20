@@ -182,7 +182,10 @@ For the y coordinate the formula is the same. Analyzing how the total force acti
 - User input, where each key pressed adjusts the force vector by increasing the corresponding force applied to the drone.
 - Repulsive force from the obstacles;
 
-$$ F_{rep} = \begin{cases} \eta \cdot \left(\frac{1}{\rho(q)} - \frac{1}{\rho_0} \right) \frac{1}{\rho^2(q)}\nabla\rho(q), & \text{if } \rho(q) \leq \rho_0\\  0, & \text{if} \rho(q) > \rho_0 \end{cases} $$
+$$ F_{rep} = \begin{cases} 
+\eta \cdot \left(\frac{1}{\rho(q)} - \frac{1}{\rho_0} \right) \frac{1}{\rho^2(q)}\nabla\rho(q), & \text{if } \rho(q) \leq \rho_0\\ 
+ 0, & \text{if} \rho(q) > \rho_0 
+ \end{cases} $$
 
 where $\eta$ is is a positive scaling factor, $\rho$ is the distance between the single obstacle and the drone and $\rho_0$ is the threshold above which the obstacle has no influence.
 - Attractive force from the targets.
@@ -216,3 +219,52 @@ All configurable parameters are stored in the appsettings.json file and can be m
 
 ## Logging
 Logs are available to assist developers in debugging the project and to provide users with insights into the execution process. Each component generates its own log file, storing relevant information, all of which are located in the logs folder. The level of detail in the logs varies based on the project's build mode. In debug mode, more detailed information is recorded, while in release mode, logging is minimized. This behavior is controlled by the USE_DEBUG flag and developed using MACROS.
+
+## Project structure
+```
+📂 AdvancedRobotProgramming-Assignment2
+│── 📄 Makefile  
+│── 📄 appsettings.json  
+│── 📄 README.md  
+│── 📂 docs/  
+│   ├── 🖼️ ARP-ass2.png  
+│   ├── 🎞️ game.gif  
+│   ├── 🎞️ menu.gif  
+│  
+│── 📂 cJSON/  
+│   ├── 📄 cJSON.h  
+│  
+│── 📂 idl/  
+│   ├── 📄 Obstacles.idl  
+│   ├── 📄 Targets.idl  
+│  
+│── 📂 include/  
+│   ├── 📄 auxfunc.h  
+│   ├── 📄 drone.h  
+│   ├── 📄 input.h  
+│   ├── 📄 keyboardMap.h  
+│   ├── 📄 log.h  
+│   ├── 📄 obstacle.hpp  
+│   ├── 📄 obst_publisher.hpp  
+│   ├── 📄 obst_subscriber.hpp  
+│   ├── 📄 target.hpp  
+│   ├── 📄 targ_publisher.hpp  
+│   ├── 📄 targ_subscriber.hpp  
+│   ├── 📄 watchdog.h  
+│  
+│── 📂 src/  
+│   ├── 📄 auxfunc.c  
+│   ├── 📄 blackBoard.cpp  
+│   ├── 📄 drone.c  
+│   ├── 📄 input.c  
+│   ├── 📄 main.c  
+│   ├── 📄 obstacle.cpp  
+│   ├── 📄 obst_publisher.cpp  
+│   ├── 📄 obst_subscriber.cpp  
+│   ├── 📄 target.cpp  
+│   ├── 📄 targ_publisher.cpp  
+│   ├── 📄 targ_subscriber.cpp  
+│   ├── 📄 watchdog.c  
+│  
+│── 📄 install.sh*  
+```
