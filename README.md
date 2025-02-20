@@ -3,8 +3,10 @@
 ## Project Overview
 This repository contains the implementation for the second assignment of the Advanced Robot Programming class. The project replicates the behavior of the first assignment but utilizes Fast DDS (Data Distribution Service) for communication. This enables the program to run on two separate computers:
 
-- One computer generates the target and obstacles, publishing them to a topic.
+- One computer generates the target and obstacles, publishing them on two topic.
 - The second computer, where the blackboard subscribes to the topics, allows the drone to be controlled via keyboard input, moving in the environment with the obstacles and target.
+
+![Game](docs/game.gif)
 
 ## Installation Instructions and Requirements
 To set up the project, follow these steps:
@@ -28,11 +30,12 @@ After installation, you can run the project using one of the following methods:
 
 If some changes are made to the code, it is necessary to run the make command to recompile the project before running it. Otherwise, you can use the "Run Code" if you are using vscode.
 
+However, when compiling with VS Code, some issues cause the window to resize incorrectly. To resolve this, it is advisable to run ```make clean``` followed by ```make``` from terminal.
 
 ## Project Architecture
-The project architecture of the assignement includes 6 active components, a parameter file ("appsettings.json"), and a log folder ("log") for all logger file.
+The project architecture of the assignement includes 6 active components, a parameter file ("appsettings.json"), and a log folder ("log") for all log file.
 
-![Project Architecture Overview](docs\ARP1-ass2.png?raw=true)
+![Project Architecture Overview](docs/ARP-ass2.png?raw=true)
 
 ### Blackboard
 As in the first assignment, the blackboard serves as a central component that stores the state of the environment and communicates with other system components. It interacts with the obstacle and target publisher using Fast DDS subscribers, receiving data via "topic1" and "topic2" respectively.
@@ -48,14 +51,16 @@ The primitives of the blackboard are the following:
 - Process Management and Signal Handling:
     - getpid(), which retrieves the process ID.
     - sigaction() handles signals from the watchdog (SIGUSR1), manages termination cleanup (SIGTERM), and detects window resizing (SIGWINCH).
-    - kill() allows you to safely shut down all processes.
+    - kill(): used to send a signal.
     - sigset_t mask ensures safe signal handling with pselect().
 - Interprocess Communication (IPC) via Pipes:
     - write() and read() facilitate data exchange between processes in writeMsg(), writeInputMsg(), readMsg() and readInputMsg().
 - UI Handling with Ncurses:
-    - initscr(), start_color(), curs_set(0), noecho(), cbreak() configure input and display settings.
+    - initscr(), start_color(), curs_set(), noecho(), cbreak() configure input and display settings.
     - getmaxyx() retrieves terminal size for dynamic UI.
     - newwin(), box(), wrefresh(), mvwprintw(), and werase() manage windows and content rendering.
+- Configuration & JSON Parsing:
+    - cJSON_Parse(), cJSON_GetObjectItemCaseSensitive(), cJSON_Print(), and cJSON_Delete() handle reading, modifying, and freeing configuration data.
 
 readMsg() and writeMsg() facilitate IPC via pipes by reading and writing a Message structure, logging errors, and terminating on failure. readInputMsg() and writeInputMsg() do the same but with an inputMessage structure.
 
@@ -80,7 +85,7 @@ The TargetSubscriber and ObstacleSubscriber classes handle the communication wit
 
 
 ### Target and obstacle
-The target and obstacle processes operate similarly, generating random positions within the environment and sending them to the blackboard for display and processing. Each process publishes its respective data to the blackboard using Fast DDS.
+The target and obstacle processes operate similarly, generating random positions within the environment and sending them to the blackboard for display and processing. Each process publishes its respective data to the blackboard using Fast DDS. However, since Target and Obstalce do not have a direct communication channel, some targets may overlap with obstacles.
 
 The target and obstacle utilize the following primitives:
 - File Manipulation: Functions like fopen(), fwrite(), and fclose() are used to open a log file, write messages, and close it.
@@ -91,6 +96,8 @@ The target and obstacle utilize the following primitives:
 - Process Management and Signal Handling:
     - writePid(), which retrieves the process ID using getpid().
     - sigaction() handles signals from the watchdog (SIGUSR1), manages termination cleanup (SIGTERM).
+- Configuration & JSON Parsing:
+    - cJSON_Parse(), cJSON_GetObjectItemCaseSensitive(), cJSON_Print(), and cJSON_Delete() handle reading, modifying, and freeing configuration data.
 
 The TargetPublisher and ObstaclePublisher classes manage communication with the blackboard’s subscriber. Once a successful connection is established, they publish the generated data. The FastDDS communication primitives are:
 - Partecipant Management
@@ -121,13 +128,11 @@ The watchdog utilizes the following primitives:
 - File Manipulation: Functions like fopen(), fwrite(), and fclose() are used to open a log file, write messages, and close it.
 - Process Management and Signal Handling:
     - sigaction() manages the watchdog functionability using SIGUSR1,
-    - kill() allows to safely shut down all processes.
+    - kill(): used to send a signal
     - getpid(): used to get the process ID of the watchdog and write it on the passParam file.
-    - Sigaction(): used to initialize the signal handler to handle the signal sent by the WD
-- Interprocess Communication (IPC) via Pipes:
-    - write() and read() facilitate data exchange between processes in writeSecure() and readSecure().
+    - Sigaction(): used to initialize the signal handler to handle the signal sent by the watchdog.
 
-In particular, writeSecure() and readSecure() are custom functions designed for safe file operations. writeSecure() allows for writing or modifying a specific line in a file while ensuring that no two processes modify it simultaneously. Meanwhile, readSecure() reads a specific line while maintaining safe concurrent access.
+In particular, writeSecure() and readSecure() are custom functions designed for safe file operations. writeSecure() allows for writing while ensuring that no two processes modify it simultaneously. Meanwhile, readSecure() reads a specific line while maintaining safe concurrent access.
 
 #### Passparam file
 The passparam file is used from the various process to write their process id so that the watchdog is able to read them and send them a signal to check if they are still running.
@@ -136,6 +141,8 @@ The passparam file is used from the various process to write their process id so
 The input handles user input and displays relevant information using the ncurses library, including the drone's position and speed and the forces acting on the drone.
 
 Upon startup, the user selects: the player's name and a key configuration between the default one and a custom one. In this last one, the eight external keys allow to move the drone by adding a force in the respective direction. On the other hand, the central key is used to instantly zero all the forces, in order to see the inertia on the drone.
+
+![Game](docs/menu.gif)
 
 In addition, they can choose to pause the game at any time by pressing the 'p' key, or to quit the game by pressing the 'q' key. Other keys pressed are ignored.
 
@@ -151,13 +158,13 @@ The input utilizes the following primitives:
     - sigaction() handles signals from the watchdog (SIGUSR1), manages termination cleanup (SIGTERM), and detects window resizing (SIGWINCH).
 - Interprocess Communication (IPC) via Pipes: write() and read() facilitate data exchange between processes in writeInputMsg() and readInputMsg().
 - UI Handling with Ncurses:
-    - initscr(), start_color(), curs_set(0), noecho(), cbreak(), and nodelay() configure input and display settings.
+    - initscr(), start_color(), curs_set(), noecho(), cbreak(), and nodelay() configure input and display settings.
     - getmaxyx() retrieves terminal size for dynamic UI.
     - newwin(), box(), wrefresh(), mvwprintw(), and werase() manage windows and content rendering.
 - Configuration & JSON Parsing:
     - cJSON_Parse(), cJSON_GetObjectItemCaseSensitive(), cJSON_Print(), and cJSON_Delete() handle reading, modifying, and freeing configuration data.
 
-In particular, writeSecure() ensure safe file operations, allowing to modify a specific line while preventing concurrent writes.
+In particular, writeSecure() ensure safe file operations, while preventing concurrent writes.
 
 ### Drone
 The drone handles movement and interaction with targets and obstacles, using force-based navigation. The formula used to calculate the next position of the drone is the following:
@@ -174,11 +181,15 @@ where:
 For the y coordinate the formula is the same. Analyzing how the total force acting on the drone was calculated, this is given by:
 - User input, where each key pressed adjusts the force vector by increasing the corresponding force applied to the drone.
 - Repulsive force from the obstacles;
+
+$$ F_{rep} = \begin{cases} \eta \cdot \left(\frac{1}{\rho(q)} - \frac{1}{\rho_0} \right) \frac{1}{\rho^2(q)}\nabla\rho(q), & \text{if } \rho(q) \leq \rho_0\\  0, & \text{if} \rho(q) > \rho_0 \end{cases} $$
+
+where $\eta$ is is a positive scaling factor, $\rho$ is the distance between the single obstacle and the drone and $\rho_0$ is the threshold above which the obstacle has no influence.
 - Attractive force from the targets.
 
-Each obstacle and target inside a given radius $\rho_0$ from the drone will add a force:
-$$ F = \frac {\eta}{\rho} \cdot \left(\frac{1}{\rho} - \frac{1}{\rho_0}  \right)^2$$
-where $\rho$ is the distance between the single obstacle/target and the drone. The force is then divided into its components along x and y.
+$$ F_{att} = - \psi \frac{(q - q_{goal})}{||q-q_{goal}||} $$
+
+where $\psi$ is a positive scaling factor, $q_{goal}$ is the target position and $q$ is the drone position. 
 
 The drone utilizes the following primitives:
 - File Manipulation: Functions like fopen(), fwrite(), and fclose() are used to open a log file, write messages, and close it.
@@ -191,6 +202,8 @@ The drone utilizes the following primitives:
     - Sigaction() used to initialize the signal handler to handle the signal sent by the watchdog
 - Interprocess Communication (IPC) via Pipes:
     - write() and read() facilitate data exchange between processes in writeMsg() and readMsg().
+- Configuration & JSON Parsing:
+    - cJSON_Parse(), cJSON_GetObjectItemCaseSensitive(), cJSON_Print(), and cJSON_Delete() handle reading, modifying, and freeing configuration data.
 
 In particular, writeSecure() ensure safe file operations, allowing to modify a specific line while preventing concurrent writes. Lastly, readMsg() and writeMsg() facilitate IPC via pipes by reading and writing a Message structure, logging errors, and terminating on failure.
 
@@ -198,7 +211,8 @@ In particular, writeSecure() ensure safe file operations, allowing to modify a s
 All configurable parameters are stored in the appsettings.json file and can be modified. These parameters include:
 - Player Settings: the default player name and default key bindings, which can be customized at the start of the game;
 - Environment Settings: Number of targets and obstacles, determining the density of entities in each level;
-- Physics Parameters for the drone dynamics.
+- Physics Parameters: Defines drone dynamics, such as force limits, mass, and movement precision.
+- Network Configuration: Specifies IP addresses and ports for communication between the server and client components.
 
 ## Logging
-Logs are available to assist developers in debugging the project and to provide users with insights into the execution process. Each component generates its own log file, storing relevant information, all of which are located in the logs folder. The level of detail in the logs varies based on the project's build mode. In debug mode, more detailed information is recorded, while in release mode, logging is minimized. This behavior is controlled by the USE_DEBUG flag.
+Logs are available to assist developers in debugging the project and to provide users with insights into the execution process. Each component generates its own log file, storing relevant information, all of which are located in the logs folder. The level of detail in the logs varies based on the project's build mode. In debug mode, more detailed information is recorded, while in release mode, logging is minimized. This behavior is controlled by the USE_DEBUG flag and developed using MACROS.

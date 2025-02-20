@@ -11,6 +11,7 @@
 !*.json
 !*.sh
 !*.png
+!*.gif
 !Makefile
 
 # Except for directories:
